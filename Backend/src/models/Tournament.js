@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
- 
+
 const tournamentSchema = new mongoose.Schema(
   {
     name:                 { type: String, required: true, trim: true },
@@ -40,14 +40,14 @@ const tournamentSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
- 
+
 // Auto-update status based on dates
 tournamentSchema.pre('save', function (next) {
   const now = new Date();
-  if (this.startDate > now)       this.status = 'Upcoming';
-  else if (this.endDate < now)    this.status = 'Completed';
-  else                            this.status = 'Ongoing';
+  if (this.startDate > now)        this.status = 'Upcoming';
+  else if (this.endDate < now)     this.status = 'Completed';
+  else                             this.status = 'Ongoing';
   next();
 });
- 
+
 export default mongoose.model('Tournament', tournamentSchema);

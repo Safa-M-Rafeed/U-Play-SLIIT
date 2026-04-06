@@ -10,7 +10,7 @@ const seedTournaments = [
     sport: 'Basketball',
     date: '2026-03-28',
     registeredTeams: 14,
-    totalTeams: 16,
+    maxTeams: 16,
     matchesPlayed: 42,
     status: 'Active'
   },
@@ -19,7 +19,7 @@ const seedTournaments = [
     sport: 'Football',
     date: '2026-04-05',
     registeredTeams: 8,
-    totalTeams: 10,
+    maxTeams: 10,
     matchesPlayed: 28,
     status: 'Registration Open'
   },
@@ -28,7 +28,7 @@ const seedTournaments = [
     sport: 'Cricket',
     date: '2026-04-12',
     registeredTeams: 6,
-    totalTeams: 8,
+    maxTeams: 8,
     matchesPlayed: 18,
     status: 'Upcoming'
   }
@@ -132,15 +132,12 @@ const formatUser = (user) => ({
 });
 
 const formatTournament = (tournament) => ({
-  id: tournament._id,
+  _id: tournament._id,
   name: tournament.name,
   sport: tournament.sport,
-  date: new Date(tournament.date).toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric'
-  }),
-  registered: tournament.registeredTeams,
-  total: tournament.totalTeams,
+  date: tournament.date,
+  registeredTeams: tournament.registeredTeams,
+  totalTeams: tournament.maxTeams,
   matchesPlayed: tournament.matchesPlayed || 0,
   status: tournament.status
 });
@@ -445,7 +442,7 @@ export const deleteUser = async (req, res) => {
 
 export const createTournament = async (req, res) => {
   try {
-    const { name, sport, date, totalTeams, registeredTeams, matchesPlayed, status } = req.body;
+    const { name, sport, date, maxTeams, registeredTeams, matchesPlayed, status } = req.body;
 
     if (!name || !sport || !date) {
       return res.status(400).json({ message: 'Name, sport, and date are required' });
@@ -455,7 +452,7 @@ export const createTournament = async (req, res) => {
       name: name.trim(),
       sport: sport.trim(),
       date,
-      totalTeams: Number(totalTeams) || 0,
+      maxTeams: Number(maxTeams) || 0,
       registeredTeams: Number(registeredTeams) || 0,
       matchesPlayed: Number(matchesPlayed) || 0,
       status: status || 'Upcoming'
@@ -475,7 +472,7 @@ export const createTournament = async (req, res) => {
 
 export const updateTournament = async (req, res) => {
   try {
-    const { name, sport, date, totalTeams, registeredTeams, matchesPlayed, status } = req.body;
+    const { name, sport, date, maxTeams, registeredTeams, matchesPlayed, status } = req.body;
 
     const tournament = await Tournament.findByIdAndUpdate(
       req.params.tournamentId,
@@ -484,7 +481,7 @@ export const updateTournament = async (req, res) => {
           name: name?.trim(),
           sport: sport?.trim(),
           date,
-          totalTeams: Number(totalTeams) || 0,
+          maxTeams: Number(maxTeams) || 0,
           registeredTeams: Number(registeredTeams) || 0,
           matchesPlayed: Number(matchesPlayed) || 0,
           status
