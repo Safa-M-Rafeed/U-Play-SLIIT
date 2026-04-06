@@ -9,16 +9,16 @@ import {
   generateFormat,
   addAnnouncement,
 } from '../controllers/tournamentController.js';
-
+ 
 const router = express.Router();
-
-router.get('/', getTournaments);
-router.post('/', createTournament);
-router.post('/generate-format', generateFormat);
-router.get('/:id', getTournament);
-router.put('/:id', updateTournament);
-router.delete('/:id', deleteTournament);
-router.post('/:id/clone', cloneTournament);
-router.post('/:id/announcements', addAnnouncement);
-
+ 
+router.get('/',                      getTournaments);
+router.post('/',                     createTournament);
+router.post('/generate-format',      generateFormat);
+router.get('/:id',                   getTournament);
+router.put('/:id',                   updateTournament);
+router.delete('/:id',               deleteTournament);
+router.post('/:id/clone',            cloneTournament);
+router.post('/:id/announcements',    addAnnouncement);
+ 
 export default router;

@@ -1,11 +1,11 @@
-import { useState, useEffect } from "react";
-import { getAllTournaments } from "../lib/tournamentApi";
-
+import { useState, useEffect } from 'react';
+import { getAllTournaments } from '../lib/tournamentApi';
+ 
 export const useTournaments = () => {
   const [tournaments, setTournaments] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
+  const [loading, setLoading]         = useState(true);
+  const [error, setError]             = useState(null);
+ 
   const fetchTournaments = async () => {
     try {
       setLoading(true);
@@ -17,10 +17,8 @@ export const useTournaments = () => {
       setLoading(false);
     }
   };
-
-  useEffect(() => {
-    fetchTournaments();
-  }, []);
-
+ 
+  useEffect(() => { fetchTournaments(); }, []);
+ 
   return { tournaments, loading, error, refetch: fetchTournaments };
 };

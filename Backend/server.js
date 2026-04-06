@@ -25,6 +25,7 @@ app.use(
 );
 app.use(express.json());
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use('/api/tournaments', tournamentRoutes);   // ADD THIS
 
 app.get('/api/health', (req, res) => {
   res.json({ message: 'Backend is running' });
