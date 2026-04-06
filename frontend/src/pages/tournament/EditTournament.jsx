@@ -8,6 +8,7 @@ const FORMATS = ["Group Stage + Playoffs","Single Knockout","Round Robin League"
 export default function EditTournament() {
   const { id } = useParams();
   const navigate = useNavigate();
+
   const [form, setForm] = useState(null);
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
@@ -36,28 +37,34 @@ export default function EditTournament() {
 
   const validate = () => {
     const e = {};
-    if (!form.name || form.name.length < 3) e.name = "Tournament name must be at least 3 characters";
-    if (!form.sport) e.sport = "Please select a sport";
-    if (!form.format) e.format = "Please select a format";
-    if (!form.startDate) e.startDate = "Start date is required";
-    if (!form.endDate) e.endDate = "End date is required";
+    if (!form.name || form.name.length < 3) e.name = "Minimum 3 characters";
+    if (!form.sport) e.sport = "Select a sport";
+    if (!form.format) e.format = "Select a format";
+    if (!form.startDate) e.startDate = "Required";
+    if (!form.endDate) e.endDate = "Required";
     else if (form.endDate <= form.startDate) e.endDate = "End date must be after start date";
-    if (!form.registrationDeadline) e.registrationDeadline = "Deadline is required";
-    else if (form.registrationDeadline >= form.startDate) e.registrationDeadline = "Deadline must be before start date";
-    if (!form.venue || form.venue.length < 3) e.venue = "Venue is required";
-    if (!form.maxTeams || form.maxTeams < 2 || form.maxTeams > 64) e.maxTeams = "Must be between 2 and 64";
+    if (!form.registrationDeadline) e.registrationDeadline = "Required";
+    else if (form.registrationDeadline >= form.startDate) e.registrationDeadline = "Must be before start date";
+    if (!form.venue || form.venue.length < 3) e.venue = "Required";
+    if (!form.maxTeams || form.maxTeams < 2 || form.maxTeams > 64) e.maxTeams = "2–64 only";
     return e;
   };
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
-    if (errors[e.target.name]) setErrors({ ...errors, [e.target.name]: null });
+    if (errors[e.target.name]) {
+      setErrors({ ...errors, [e.target.name]: null });
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     const errs = validate();
-    if (Object.keys(errs).length > 0) { setErrors(errs); return; }
+    if (Object.keys(errs).length) {
+      setErrors(errs);
+      return;
+    }
+
     setSubmitting(true);
     try {
       await updateTournament(id, form);
@@ -70,108 +77,144 @@ export default function EditTournament() {
   };
 
   const inputClass = (name) =>
-    `w-full bg-[#0a0f0d] border rounded-lg px-3 py-2.5 text-sm text-white placeholder-zinc-600 focus:outline-none transition-colors ${
-      errors[name] ? "border-red-400/60" : "border-white/10 focus:border-emerald-400/50"
+    `w-full bg-white/5 border rounded-lg px-3 py-2.5 text-sm text-white placeholder-zinc-500 focus:outline-none transition-all ${
+      errors[name]
+        ? "border-red-400 focus:ring-1 focus:ring-red-400"
+        : "border-white/10 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
     }`;
 
-  if (!form) return (
-    <div className="min-h-screen bg-[#0a0f0d] flex items-center justify-center">
-      <p className="text-zinc-500">Loading...</p>
-    </div>
-  );
+  if (!form)
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-grid-pattern">
+        <p className="text-zinc-400">Loading...</p>
+      </div>
+    );
 
   return (
-    <div className="min-h-screen bg-[#0a0f0d]">
-      <nav className="flex items-center justify-between px-6 py-4 border-b border-white/5">
-        <span className="font-bold text-2xl text-emerald-400">
-          U-<span className="text-white">Play</span>
+    <div className="min-h-screen bg-grid-pattern relative overflow-hidden">
+
+      {/* Orbs */}
+      <div className="orb orb-1 top-[-100px] left-[-100px]" />
+      <div className="orb orb-2 bottom-[-100px] right-[-100px]" />
+
+      {/* NAV */}
+      <nav className="flex items-center justify-between px-8 py-4 backdrop-blur-xl bg-white/5 border-b border-white/10">
+        <span className="text-2xl font-extrabold text-gradient">
+          U-Play
         </span>
-        <button onClick={() => navigate(`/admin/tournaments/${id}`)}
-          className="text-zinc-500 text-sm hover:text-white transition-colors">
+
+        <button
+          onClick={() => navigate(`/admin/tournaments/${id}`)}
+          className="text-sm text-zinc-400 hover:text-white transition"
+        >
           ← Back
         </button>
       </nav>
 
-      <div className="max-w-2xl mx-auto px-6 py-8">
-        <div className="mb-8">
-          <h1 className="font-bold text-3xl text-white">
-            Edit <span className="text-emerald-400">tournament</span>
+      {/* FORM */}
+      <div className="max-w-3xl mx-auto px-8 py-10">
+
+        {/* HEADER */}
+        <div className="mb-10">
+          <h1 className="text-4xl font-bold text-white">
+            Edit <span className="text-gradient">Tournament</span>
           </h1>
-          <p className="text-zinc-500 text-sm mt-1">Update the tournament details below</p>
+          <p className="text-zinc-400 text-sm mt-2">
+            Update tournament details professionally
+          </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="bg-[#131c16] border border-white/5 rounded-2xl p-6 space-y-4">
-            <h2 className="font-bold text-sm text-white">Basic information</h2>
+        <form onSubmit={handleSubmit} className="space-y-6">
+
+          {/* BASIC INFO */}
+          <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-6 space-y-5">
+            <h2 className="text-lg font-semibold text-white">
+              Basic Information
+            </h2>
+
             <div>
-              <label className="block text-xs text-zinc-400 mb-1.5">Tournament name</label>
+              <label className="text-sm text-zinc-400">Tournament Name</label>
               <input name="name" value={form.name} onChange={handleChange} className={inputClass("name")} />
               {errors.name && <p className="text-red-400 text-xs mt-1">{errors.name}</p>}
             </div>
+
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs text-zinc-400 mb-1.5">Sport</label>
+                <label className="text-sm text-zinc-400">Sport</label>
                 <select name="sport" value={form.sport} onChange={handleChange} className={inputClass("sport")}>
                   {SPORTS.map((s) => <option key={s}>{s}</option>)}
                 </select>
-                {errors.sport && <p className="text-red-400 text-xs mt-1">{errors.sport}</p>}
               </div>
+
               <div>
-                <label className="block text-xs text-zinc-400 mb-1.5">Format</label>
+                <label className="text-sm text-zinc-400">Format</label>
                 <select name="format" value={form.format} onChange={handleChange} className={inputClass("format")}>
                   {FORMATS.map((f) => <option key={f}>{f}</option>)}
                 </select>
-                {errors.format && <p className="text-red-400 text-xs mt-1">{errors.format}</p>}
               </div>
             </div>
+
             <div>
-              <label className="block text-xs text-zinc-400 mb-1.5">Venue</label>
+              <label className="text-sm text-zinc-400">Venue</label>
               <input name="venue" value={form.venue} onChange={handleChange} className={inputClass("venue")} />
-              {errors.venue && <p className="text-red-400 text-xs mt-1">{errors.venue}</p>}
             </div>
+
             <div>
-              <label className="block text-xs text-zinc-400 mb-1.5">Maximum teams</label>
-              <input name="maxTeams" type="number" value={form.maxTeams} onChange={handleChange}
-                className={inputClass("maxTeams")} min="2" max="64" />
-              {errors.maxTeams && <p className="text-red-400 text-xs mt-1">{errors.maxTeams}</p>}
+              <label className="text-sm text-zinc-400">Maximum Teams</label>
+              <input type="number" name="maxTeams" value={form.maxTeams} onChange={handleChange} className={inputClass("maxTeams")} />
             </div>
           </div>
 
-          <div className="bg-[#131c16] border border-white/5 rounded-2xl p-6 space-y-4">
-            <h2 className="font-bold text-sm text-white">Schedule</h2>
+          {/* SCHEDULE */}
+          <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-6 space-y-5">
+            <h2 className="text-lg font-semibold text-white">
+              Schedule
+            </h2>
+
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs text-zinc-400 mb-1.5">Start date</label>
-                <input name="startDate" type="date" value={form.startDate}
-                  onChange={handleChange} className={inputClass("startDate")} />
-                {errors.startDate && <p className="text-red-400 text-xs mt-1">{errors.startDate}</p>}
+                <label className="text-sm text-zinc-400">Start Date</label>
+                <input type="date" name="startDate" value={form.startDate} onChange={handleChange} className={inputClass("startDate")} />
               </div>
+
               <div>
-                <label className="block text-xs text-zinc-400 mb-1.5">End date</label>
-                <input name="endDate" type="date" value={form.endDate}
-                  onChange={handleChange} className={inputClass("endDate")} />
-                {errors.endDate && <p className="text-red-400 text-xs mt-1">{errors.endDate}</p>}
+                <label className="text-sm text-zinc-400">End Date</label>
+                <input type="date" name="endDate" value={form.endDate} onChange={handleChange} className={inputClass("endDate")} />
               </div>
             </div>
+
             <div>
-              <label className="block text-xs text-zinc-400 mb-1.5">Registration deadline</label>
-              <input name="registrationDeadline" type="date" value={form.registrationDeadline}
-                onChange={handleChange} className={inputClass("registrationDeadline")} />
-              {errors.registrationDeadline && <p className="text-red-400 text-xs mt-1">{errors.registrationDeadline}</p>}
+              <label className="text-sm text-zinc-400">Registration Deadline</label>
+              <input type="date" name="registrationDeadline" value={form.registrationDeadline} onChange={handleChange} className={inputClass("registrationDeadline")} />
             </div>
           </div>
 
-          <div className="bg-[#131c16] border border-white/5 rounded-2xl p-6">
-            <h2 className="font-bold text-sm text-white mb-4">Rules & description</h2>
-            <textarea name="rules" value={form.rules} onChange={handleChange}
-              rows={4} maxLength={1000}
-              className="w-full bg-[#0a0f0d] border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-emerald-400/50 resize-none" />
-            <p className="text-zinc-600 text-xs mt-1 text-right">{form.rules.length} / 1000</p>
+          {/* RULES */}
+          <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-6">
+            <h2 className="text-lg font-semibold text-white mb-3">
+              Rules & Description
+            </h2>
+
+            <textarea
+              name="rules"
+              value={form.rules}
+              onChange={handleChange}
+              rows={4}
+              className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
+            />
+
+            <p className="text-xs text-zinc-500 text-right mt-1">
+              {form.rules.length}/1000
+            </p>
           </div>
 
-          <button type="submit" disabled={submitting}
-            className="w-full bg-emerald-400 text-[#0a0f0d] font-bold py-3.5 rounded-xl text-sm hover:bg-emerald-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-            {submitting ? "Saving..." : "Save changes"}
+          {/* SUBMIT */}
+          <button
+            type="submit"
+            disabled={submitting}
+            className="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-3 rounded-xl glow-blue transition disabled:opacity-50"
+          >
+            {submitting ? "Saving Changes..." : "Save Changes"}
           </button>
         </form>
       </div>
