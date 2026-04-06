@@ -20,7 +20,7 @@ const tournamentSchema = new mongoose.Schema(
       type: Number,
       default: 0
     },
-    maxTeams: {
+    totalTeams: {
       type: Number,
       default: 0
     },
