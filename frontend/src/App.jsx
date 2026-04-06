@@ -63,7 +63,7 @@ export function App() {
           <Route path="/admin/matches" element={<Navigate to="/admin" replace />} />
           <Route path="/admin/approvals" element={<Navigate to="/admin" replace />} />
           <Route path="/admin/insights" element={<Insights />} />
-          <Route path="/admin/insights-users" element={<InsightsUser />} /
+          <Route path="/admin/insights-users" element={<InsightsUser />} />
           <Route path='/admin/matches'                  element={<Navigate to='/admin' replace />} />
           <Route path='/admin/approvals'                element={<Navigate to='/admin' replace />} />
           <Route path='/admin/results'                  element={<Navigate to='/admin' replace />} />
