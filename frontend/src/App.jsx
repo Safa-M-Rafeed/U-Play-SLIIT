@@ -8,9 +8,6 @@ import { ProfilePage } from './pages/ProfilePage';
 import { StudentDashboard } from './pages/StudentDashboard';
 import { CaptainDashboard } from './pages/CaptainDashboard';
 import { AdminDashboard } from './pages/AdminDashboard';
-import { Insights } from './pages/Insights';
-import { TournamentsInsights } from './pages/TournamentsInsights';
-import { InsightsUser } from './pages/InsightsUser';
 export function App() {
   return (
     <BrowserRouter
@@ -44,11 +41,9 @@ export function App() {
         <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/admin/tournaments" element={<Navigate to="/admin" replace />} />
-          <Route path="/admin/tournaments-insights" element={<TournamentsInsights />} />
           <Route path="/admin/matches" element={<Navigate to="/admin" replace />} />
           <Route path="/admin/approvals" element={<Navigate to="/admin" replace />} />
-          <Route path="/admin/insights" element={<Insights />} />
-          <Route path="/admin/insights-users" element={<InsightsUser />} />
+          <Route path="/admin/results" element={<Navigate to="/admin" replace />} />
         </Route>
       </Routes>
     </BrowserRouter>
