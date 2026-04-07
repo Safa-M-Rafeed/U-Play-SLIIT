@@ -16,6 +16,11 @@ function getMailjetConfig() {
   };
 }
 
+export const getLeaderboard = async () => {
+  const response = await axios.get(`${API_URL}/leaderboard`);
+  return response.data;
+};
+
 export async function sendLoginOtpEmail({ toEmail, toName, otp }) {
   const config = getMailjetConfig();
 
