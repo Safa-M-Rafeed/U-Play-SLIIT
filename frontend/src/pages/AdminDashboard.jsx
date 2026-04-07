@@ -29,7 +29,7 @@ const sidebarItems = [
   { icon: <TrophyIcon className="w-5 h-5" />, label: 'Tournaments', path: '/admin/tournaments' },
   { icon: <SwordsIcon className="w-5 h-5" />, label: 'Matches', path: '/admin/matches' },
   { icon: <ShieldCheckIcon className="w-5 h-5" />, label: 'Approvals', path: '/admin/approvals' },
-  { icon: <BarChart3Icon className="w-5 h-5" />, label: 'Results', path: '/admin/results' }
+  { icon: <BarChart3Icon className="w-5 h-5" />, label: 'Insights', path: '/admin/insights' }
 ];
 
 const containerVariants = {

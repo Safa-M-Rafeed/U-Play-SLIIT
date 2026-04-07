@@ -1,21 +1,18 @@
-import React from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { getDashboardPath } from '../../lib/auth';
 
+/**
+ * Redirects already-authenticated users away from public pages
+ * (login / register) to their role-specific dashboard.
+ */
 export function PublicRoute() {
-  const { user, loading, isAuthenticated } = useAuth();
+  const { user, token, loading } = useAuth();
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center">
-        Checking session...
-      </div>
-    );
-  }
+  if (loading) return null;
 
-  if (isAuthenticated && user) {
-    return <Navigate to={getDashboardPath(user.role)} replace />;
+  if (token && user) {
+    const home = { admin: '/admin', captain: '/captain', student: '/student' };
+    return <Navigate to={home[user.role] ?? '/student'} replace />;
   }
 
   return <Outlet />;
