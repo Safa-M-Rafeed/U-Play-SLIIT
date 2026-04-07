@@ -226,7 +226,7 @@ function getInitialProfileTheme() {
   return localStorage.getItem(PROFILE_THEME_KEY) || 'dark';
 }
 
-export function ProfilePage() {
+export default function ProfilePage() {
   const { user, updateProfile, updatePassword, uploadAvatar } = useAuth();
   const role = user?.role || 'student';
   const pageTitle = useMemo(() => getProfilePageTitle(role), [role]);
@@ -945,3 +945,4 @@ export function ProfilePage() {
     </DashboardLayout>
   );
 }
+
