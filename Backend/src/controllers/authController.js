@@ -113,14 +113,19 @@ export const loginUser = async (req, res) => {
       otp
     });
 
+    console.log(`✅ OTP sent successfully to ${user.email}`);
+
     res.json({
       message: `OTP sent to ${user.email}. Enter the code to complete login.`,
       otpRequired: true,
       email: user.email
     });
   } catch (error) {
-    console.error('loginUser error:', error);
-    res.status(500).json({ message: 'Unable to send login OTP' });
+    console.error('❌ loginUser error:', error.message);
+    res.status(500).json({ 
+      message: 'Unable to send login OTP',
+      error: error.message 
+    });
   }
 };
 

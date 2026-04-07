@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React from 'react';
+import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import {
   HomeIcon,
   TrophyIcon,
@@ -9,62 +10,43 @@ import {
   ZapIcon,
   StarIcon,
   TargetIcon,
-  ImageIcon,
+  TrendingUpIcon,
+  MapPinIcon,
   ChevronRightIcon,
-  XIcon
+  PlayCircleIcon,
 } from 'lucide-react';
 import { DashboardLayout } from '../components/layout/DashboardLayout';
-import { GlassCard } from '../components/ui/GlassCard';
-import { GradientButton } from '../components/ui/GradientButton';
-import { useAuth } from '../context/AuthContext';
-import { getMediaUrl } from '../lib/media';
-import { getLeaderboard, getMatches } from '../services/matchService';
-import { useNavigate } from 'react-router-dom';
-
-const BACKEND_URL = "http://localhost:5000";
+import { GlassCard }       from '../components/ui/GlassCard';
+import { GradientButton }  from '../components/ui/GradientButton';
+import { useAuth }         from '../context/AuthContext';
+import { getMediaUrl }     from '../lib/media';
 
 const sidebarItems = [
-  { icon: <HomeIcon className="w-5 h-5" />, label: 'Home', path: '/student' },
-  { icon: <TrophyIcon className="w-5 h-5" />, label: 'Tournaments', path: '/student/tournaments' },
-  { icon: <CalendarIcon className="w-5 h-5" />, label: 'Fixtures', path: '/student/fixtures' },
-  { icon: <BarChart3Icon className="w-5 h-5" />, label: 'Leaderboard', path: '/student/leaderboard' },
-  { icon: <UserIcon className="w-5 h-5" />, label: 'Profile', path: '/profile' },
+  { icon: <HomeIcon    className='w-5 h-5' />, label: 'Home',        path: '/student' },
+  { icon: <TrophyIcon  className='w-5 h-5' />, label: 'Tournaments', path: '/student/tournament' },
+  { icon: <CalendarIcon className='w-5 h-5'/>, label: 'Fixtures',    path: '/student/fixtures'    },
+  { icon: <BarChart3Icon className='w-5 h-5'/>,label: 'Leaderboard', path: '/student/leaderboard' },
+  { icon: <UserIcon    className='w-5 h-5' />, label: 'Profile',     path: '/profile'             },
 ];
 
-export default function StudentDashboard() {
-  const navigate = useNavigate();
-  const { user } = useAuth();
-  const [leaderboard, setLeaderboard] = useState([]);
-  const [recentMatches, setRecentMatches] = useState([]);
-  const [loading, setLoading] = useState(true);
-  
-  // Gallery State
-  const [selectedGallery, setSelectedGallery] = useState(null);
+const containerVariants = {
+  hidden: { opacity: 0 },
+  show:   { opacity: 1, transition: { staggerChildren: 0.1 } },
+};
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  show:   { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 300, damping: 24 } },
+};
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [lbData, allMatches] = await Promise.all([
-          getLeaderboard(),
-          getMatches()
-        ]);
-        setLeaderboard(lbData);
-        const filtered = allMatches
-          .filter(m => m.status === 'Live' || (m.images && m.images.length > 0))
-          .sort((a, b) => new Date(b.matchDate) - new Date(a.matchDate))
-          .slice(0, 3);
-        setRecentMatches(filtered);
-      } catch (err) {
-        console.error("Dashboard data load failed", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, []);
+export function StudentDashboard() {
+  const { user }   = useAuth();
+  const navigate   = useNavigate();
 
-  const userTeam = leaderboard[0] || { points: 0, won: 0, played: 0 };
-  const winRate = userTeam.played > 0 ? Math.round((userTeam.won / userTeam.played) * 100) : 0;
+  const today = new Date().toLocaleDateString('en-US', {
+    weekday: 'long',
+    month:   'long',
+    day:     'numeric',
+  });
 
   return (
     <DashboardLayout
@@ -72,160 +54,248 @@ export default function StudentDashboard() {
       userRole={user?.role || 'student'}
       userName={user?.fullName || 'Student'}
       userAvatar={getMediaUrl(user?.avatarUrl)}
-      pageTitle="Dashboard">
+      pageTitle="Dashboard"
+    >
+      <motion.div
+        className="space-y-6 max-w-7xl mx-auto"
+        variants={containerVariants}
+        initial="hidden"
+        animate="show"
+      >
+        {/* Welcome Banner */}
+        <motion.div variants={itemVariants}>
+          <GlassCard className="border-l-4 border-l-blue-500 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h2 className="text-2xl font-bold text-white mb-1">
+                Welcome back, {user?.fullName?.split(' ')[0] || 'Alex'}! 👋
+              </h2>
+              <p className="text-slate-400 text-sm">
+                {today} • Stay on top of your game
+              </p>
+            </div>
+            <GradientButton
+              variant="outline"
+              className="whitespace-nowrap"
+              onClick={() => navigate('/student/fixtures')}
+            >
+              View Schedule
+            </GradientButton>
+          </GlassCard>
+        </motion.div>
 
-      <div className="space-y-6 max-w-7xl mx-auto">
-        
-        {/* Statistics Row */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatCard icon={<TrophyIcon />} label="Tournaments" value="Active" color="blue" />
-          <StatCard icon={<ZapIcon />} label="Live Now" value={recentMatches.filter(m => m.status === 'Live').length} color="purple" isLive />
-          <StatCard icon={<StarIcon />} label="Team Points" value={userTeam.points} color="amber" />
-          <StatCard icon={<TargetIcon />} label="Win Rate" value={`${winRate}%`} color="green" />
-        </div>
+        {/* Stats Row */}
+        <motion.div
+          variants={itemVariants}
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"
+        >
+          <GlassCard hover className="flex flex-col">
+            <div className="flex items-start justify-between mb-4">
+              <div className="w-10 h-10 rounded-xl bg-blue-500/20 flex items-center justify-center text-blue-400">
+                <TrophyIcon className="w-5 h-5" />
+              </div>
+              <span className="flex items-center text-xs font-medium text-green-400 bg-green-400/10 px-2 py-1 rounded-lg">
+                <TrendingUpIcon className="w-3 h-3 mr-1" /> +2
+              </span>
+            </div>
+            <h3 className="text-2xl font-bold text-white mb-1">5</h3>
+            <p className="text-sm text-slate-400">Upcoming Tournaments</p>
+          </GlassCard>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          
-          {/* Match Highlights Card */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-bold text-white">Match Highlights</h3>
-            <div className="space-y-4">
-              {recentMatches.map((m) => (
-                <GlassCard key={m._id} className="relative overflow-hidden group min-h-[160px]">
-                  {/* Backdrop */}
-                  {m.images?.length > 0 && (
-                    <div className="absolute inset-0 z-0">
-                      <img 
-                        src={`${BACKEND_URL}${m.images[0]}`} 
-                        className="w-full h-full object-cover opacity-20" 
-                        alt="bg"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/60 to-transparent"></div>
-                    </div>
-                  )}
+          <GlassCard hover className="flex flex-col">
+            <div className="flex items-start justify-between mb-4">
+              <div className="w-10 h-10 rounded-xl bg-purple-500/20 flex items-center justify-center text-purple-400">
+                <ZapIcon className="w-5 h-5" />
+              </div>
+              <span className="flex items-center text-xs font-medium text-red-400 bg-red-400/10 px-2 py-1 rounded-lg">
+                <span className="relative flex h-2 w-2 mr-1.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+                </span>
+                Live
+              </span>
+            </div>
+            <h3 className="text-2xl font-bold text-white mb-1">2</h3>
+            <p className="text-sm text-slate-400">Live Matches</p>
+          </GlassCard>
 
-                  <div className="relative z-10 p-4">
-                    <div className="flex justify-between items-center mb-6">
-                       <span className="text-[10px] font-bold text-slate-400 uppercase bg-white/5 px-2 py-1 rounded">{m.venue}</span>
-                       <span className={`text-[10px] font-bold px-2 py-1 rounded ${m.status === 'Live' ? 'text-red-500 bg-red-500/10 animate-pulse' : 'text-slate-500 bg-white/5'}`}>
-                         {m.status}
-                       </span>
-                    </div>
+          <GlassCard hover className="flex flex-col">
+            <div className="flex items-start justify-between mb-4">
+              <div className="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center text-amber-400">
+                <StarIcon className="w-5 h-5" />
+              </div>
+              <span className="flex items-center text-xs font-medium text-green-400 bg-green-400/10 px-2 py-1 rounded-lg">
+                <TrendingUpIcon className="w-3 h-3 mr-1" /> +180
+              </span>
+            </div>
+            <h3 className="text-2xl font-bold text-white mb-1">1,250</h3>
+            <p className="text-sm text-slate-400">Total Points</p>
+          </GlassCard>
 
-                    <div className="flex items-center justify-between text-center mb-6">
-                      <p className="flex-1 text-sm font-bold text-white uppercase">{m.homeTeam}</p>
-                      <div className="px-4 py-1 bg-white/10 rounded-lg border border-white/10 mx-2">
-                        <span className="text-xl font-black text-white">{m.scores?.home} : {m.scores?.away}</span>
-                      </div>
-                      <p className="flex-1 text-sm font-bold text-white uppercase">{m.awayTeam}</p>
-                    </div>
+          <GlassCard hover className="flex flex-col">
+            <div className="flex items-start justify-between mb-4">
+              <div className="w-10 h-10 rounded-xl bg-green-500/20 flex items-center justify-center text-green-400">
+                <TargetIcon className="w-5 h-5" />
+              </div>
+              <span className="flex items-center text-xs font-medium text-green-400 bg-green-400/10 px-2 py-1 rounded-lg">
+                <TrendingUpIcon className="w-3 h-3 mr-1" /> +5%
+              </span>
+            </div>
+            <h3 className="text-2xl font-bold text-white mb-1">72%</h3>
+            <p className="text-sm text-slate-400">Win Rate</p>
+          </GlassCard>
+        </motion.div>
 
-                    {/* PHOTO VIEW TRIGGER */}
-                    {m.images?.length > 0 && (
-                      <button 
-                        onClick={() => setSelectedGallery(m)}
-                        className="flex items-center gap-2 hover:opacity-80 transition-opacity bg-blue-500/10 p-2 rounded-lg border border-blue-500/20"
-                      >
-                        <div className="flex -space-x-2">
-                          {m.images.slice(0, 3).map((img, i) => (
-                            <img key={i} src={`${BACKEND_URL}${img}`} className="w-6 h-6 rounded-full border-2 border-slate-900 object-cover" />
-                          ))}
-                        </div>
-                        <span className="text-[10px] text-blue-400 font-bold uppercase tracking-tighter">View {m.images.length} Photos</span>
-                      </button>
-                    )}
+        {/* Upcoming Tournaments */}
+        <motion.div variants={itemVariants} className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-bold text-white">Upcoming Tournaments</h3>
+            <button
+              onClick={() => navigate('/student/tournaments')}
+              className='text-sm text-blue-400 hover:text-blue-300 flex items-center transition-colors'>
+              View All <ChevronRightIcon className='w-4 h-4 ml-1' />
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {[
+              { id: 1, sport: 'Basketball', color: 'blue',  name: 'Inter-University Championship', date: 'Mar 28', venue: 'Sports Complex A',  teams: 12, max: 16 },
+              { id: 2, sport: 'Football',   color: 'green', name: 'Premier League Spring',         date: 'Apr 5',  venue: 'Main Stadium',       teams: 8,  max: 10 },
+              { id: 3, sport: 'Cricket',    color: 'amber', name: 'T20 Blast 2024',                date: 'Apr 12', venue: 'Cricket Ground B',   teams: 6,  max: 8  },
+            ].map((t) => (
+              <GlassCard key={t.id} hover className="flex flex-col">
+                <div className="mb-3">
+                  <span className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-medium bg-${t.color}-500/20 text-${t.color}-400 mb-2`}>
+                    {t.sport}
+                  </span>
+                  <h4 className="text-base font-bold text-white leading-tight">{t.name}</h4>
+                </div>
+                <div className="space-y-2 mb-4 flex-1">
+                  <div className="flex items-center text-sm text-slate-400">
+                    <CalendarIcon className="w-4 h-4 mr-2 flex-shrink-0" /> {t.date}
                   </div>
+                  <div className="flex items-center text-sm text-slate-400">
+                    <MapPinIcon className="w-4 h-4 mr-2 flex-shrink-0" /> {t.venue}
+                  </div>
+                </div>
+                <div className="space-y-3 mt-auto">
+                  <div>
+                    <div className="flex justify-between text-xs text-slate-400 mb-1.5">
+                      <span>Registered Teams</span>
+                      <span className="text-white">{t.teams}/{t.max}</span>
+                    </div>
+                    <div className="w-full bg-white/10 rounded-full h-1.5">
+                      <div
+                        className="bg-blue-500 h-1.5 rounded-full"
+                        style={{ width: `${(t.teams / t.max) * 100}%` }}
+                      />
+                    </div>
+                  </div>
+                    <GradientButton
+                      variant='outline'
+                      className='w-full py-2 text-xs'
+                      onClick={() => navigate(`/student/tournaments/${t._id || t.id}`)}>
+                      View Details
+                    </GradientButton>
+                </div>
+              </GlassCard>
+            ))}
+          </div>
+        </motion.div>
+
+        {/* Live Matches & Recent Results */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+          {/* Live Matches */}
+          <motion.div variants={itemVariants} className="space-y-4">
+            <div className="flex items-center gap-2">
+              <h3 className="text-lg font-bold text-white">Live Matches</h3>
+              <span className="flex items-center text-[10px] font-bold text-red-400 bg-red-400/10 px-1.5 py-0.5 rounded uppercase tracking-wider">
+                <span className="relative flex h-1.5 w-1.5 mr-1.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-red-500"></span>
+                </span>
+                Live
+              </span>
+            </div>
+            <div className="space-y-4">
+              {[
+                { sport: 'Basketball', t1: 'Tigers',   t2: 'Eagles',  s1: 45, s2: 42, period: '3rd Quarter',    c1: 'from-orange-500 to-red-500',   c2: 'from-blue-500 to-cyan-500' },
+                { sport: 'Football',   t1: 'Warriors', t2: 'Phoenix', s1: 2,  s2: 1,  period: "2nd Half • 67'", c1: 'from-green-500 to-emerald-500', c2: 'from-purple-500 to-pink-500' },
+              ].map((m, i) => (
+                <GlassCard key={i} hover className="relative overflow-hidden">
+                  <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-red-500 to-orange-500 opacity-50" />
+                  <div className="flex justify-between items-center mb-4">
+                    <span className="text-xs font-medium text-slate-400 uppercase tracking-wider">{m.sport}</span>
+                    <span className="text-xs font-medium text-red-400 animate-pulse">{m.period}</span>
+                  </div>
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="flex flex-col items-center gap-2 flex-1">
+                      <div className={`w-12 h-12 rounded-full bg-gradient-to-br ${m.c1} flex items-center justify-center text-white font-bold text-lg shadow-lg`}>
+                        {m.t1.charAt(0)}
+                      </div>
+                      <span className="text-sm font-medium text-white">{m.t1}</span>
+                    </div>
+                    <div className="flex items-center justify-center gap-4 px-4">
+                      <span className="text-3xl font-bold text-white">{m.s1}</span>
+                      <span className="text-sm font-medium text-slate-500">vs</span>
+                      <span className="text-3xl font-bold text-white">{m.s2}</span>
+                    </div>
+                    <div className="flex flex-col items-center gap-2 flex-1">
+                      <div className={`w-12 h-12 rounded-full bg-gradient-to-br ${m.c2} flex items-center justify-center text-white font-bold text-lg shadow-lg`}>
+                        {m.t2.charAt(0)}
+                      </div>
+                      <span className="text-sm font-medium text-white">{m.t2}</span>
+                    </div>
+                  </div>
+                  <GradientButton variant="outline" fullWidth className="py-2 text-xs border-white/10 hover:bg-white/5">
+                    <PlayCircleIcon className="w-4 h-4 mr-1.5" /> Watch Live
+                  </GradientButton>
                 </GlassCard>
               ))}
             </div>
-          </div>
-
-          {/* Standings section remains same... */}
-          <div className="space-y-4">
-             <h3 className="text-lg font-bold text-white">Top Teams</h3>
-             <GlassCard className="p-0 overflow-hidden">
-                <table className="w-full text-sm text-left">
-                   <tbody className="divide-y divide-white/5">
-                      {leaderboard.slice(0, 5).map((team, i) => (
-                        <tr key={i} className="hover:bg-white/[0.02]">
-                           <td className="px-4 py-3 font-bold text-slate-500">{i+1}</td>
-                           <td className="px-4 py-3 text-white">{team.team}</td>
-                           <td className="px-4 py-3 text-right font-bold text-blue-400">{team.points} PTS</td>
-                        </tr>
-                      ))}
-                   </tbody>
-                </table>
-             </GlassCard>
-          </div>
-        </div>
-      </div>
-
-      {/* --- PHOTO GALLERY MODAL --- */}
-      <AnimatePresence>
-        {selectedGallery && (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 p-4 md:p-10"
-          >
-            <button 
-              onClick={() => setSelectedGallery(null)}
-              className="absolute top-6 right-6 text-white hover:text-red-500 transition-colors bg-white/10 p-2 rounded-full"
-            >
-              <XIcon className="w-8 h-8" />
-            </button>
-
-            <div className="max-w-5xl w-full h-full flex flex-col">
-              <div className="mb-6">
-                <h2 className="text-2xl font-black text-white uppercase">{selectedGallery.homeTeam} vs {selectedGallery.awayTeam}</h2>
-                <p className="text-slate-400 text-sm">Match Gallery • {selectedGallery.images.length} Photos</p>
-              </div>
-
-              {/* Scrollable Photo Grid */}
-              <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                  {selectedGallery.images.map((img, idx) => (
-                    <motion.div 
-                      key={idx}
-                      initial={{ scale: 0.9, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      transition={{ delay: idx * 0.05 }}
-                      className="aspect-video rounded-xl overflow-hidden border border-white/10"
-                    >
-                      <img 
-                        src={`${BACKEND_URL}${img}`} 
-                        className="w-full h-full object-cover hover:scale-105 transition-transform duration-500 cursor-zoom-in" 
-                        alt="match"
-                        onClick={() => window.open(`${BACKEND_URL}${img}`, '_blank')}
-                      />
-                    </motion.div>
-                  ))}
-                </div>
-              </div>
-            </div>
           </motion.div>
-        )}
-      </AnimatePresence>
-    </DashboardLayout>
-  );
-}
 
-function StatCard({ icon, label, value, color, isLive }) {
-  const colors = {
-    blue: 'bg-blue-500/20 text-blue-400',
-    purple: 'bg-purple-500/20 text-purple-400',
-    amber: 'bg-amber-500/20 text-amber-400',
-    green: 'bg-green-500/20 text-green-400'
-  };
-  return (
-    <GlassCard className="flex flex-col p-4">
-      <div className="flex justify-between items-start mb-4">
-        <div className={`p-2 rounded-lg ${colors[color]}`}>{React.cloneElement(icon, { className: 'w-5 h-5' })}</div>
-        {isLive && value > 0 && <span className="text-[10px] font-bold text-red-500 animate-pulse bg-red-500/10 px-2 py-1 rounded">LIVE</span>}
-      </div>
-      <h3 className="text-2xl font-black text-white">{value}</h3>
-      <p className="text-[10px] text-slate-500 uppercase font-bold tracking-widest">{label}</p>
-    </GlassCard>
+          {/* Recent Results */}
+          <motion.div variants={itemVariants} className="space-y-4">
+            <h3 className="text-lg font-bold text-white">Recent Results</h3>
+            <GlassCard className="p-0 overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm text-left">
+                  <thead className="text-xs text-slate-400 uppercase bg-white/5 border-b border-white/5">
+                    <tr>
+                      <th className="px-4 py-3 font-medium">Match</th>
+                      <th className="px-4 py-3 font-medium">Score</th>
+                      <th className="px-4 py-3 font-medium">Date</th>
+                      <th className="px-4 py-3 font-medium text-right">Result</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/5">
+                    {[
+                      { match: 'Tigers vs Lions',   score: '78 - 65',  date: 'Mar 20', res: 'W', color: 'green' },
+                      { match: 'Tigers vs Sharks',  score: '2 - 3',    date: 'Mar 18', res: 'L', color: 'red'   },
+                      { match: 'Tigers vs Panthers',score: '112 - 98', date: 'Mar 15', res: 'W', color: 'green' },
+                      { match: 'Tigers vs Wolves',  score: '1 - 1',    date: 'Mar 10', res: 'D', color: 'amber' },
+                      { match: 'Tigers vs Bears',   score: '85 - 80',  date: 'Mar 05', res: 'W', color: 'green' },
+                    ].map((r, i) => (
+                      <tr key={i} className="hover:bg-white/[0.02] transition-colors">
+                        <td className="px-4 py-3 font-medium text-white whitespace-nowrap">{r.match}</td>
+                        <td className="px-4 py-3 text-slate-300">{r.score}</td>
+                        <td className="px-4 py-3 text-slate-400">{r.date}</td>
+                        <td className="px-4 py-3 text-right">
+                          <span className={`inline-flex items-center justify-center w-6 h-6 rounded-md text-xs font-bold bg-${r.color}-500/20 text-${r.color}-400`}>
+                            {r.res}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </GlassCard>
+          </motion.div>
+
+        </div>
+      </motion.div>
+    </DashboardLayout>
   );
 }
