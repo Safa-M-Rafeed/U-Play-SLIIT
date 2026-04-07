@@ -71,7 +71,7 @@ const itemVariants = {
     }
   }
 };
-export function CaptainDashboard() {
+export default function CaptainDashboard() {
   const { user } = useAuth();
   return (
     <DashboardLayout
@@ -412,3 +412,4 @@ export function CaptainDashboard() {
     </DashboardLayout>
   );
 }
+
