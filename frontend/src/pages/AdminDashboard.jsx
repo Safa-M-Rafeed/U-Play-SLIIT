@@ -57,6 +57,8 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
+  const [selectedPhotos, setSelectedPhotos] = useState([]);
+  const [uploadingPhotos, setUploadingPhotos] = useState(false);
 
   const loadData = async () => {
     try {
@@ -93,6 +95,57 @@ export default function AdminDashboard() {
       loadData(); 
     } catch (err) {
       alert("Update failed. Ensure you have Admin permissions.");
+    }
+  };
+
+  const handlePhotosChange = (e) => {
+    const files = Array.from(e.target.files);
+    setSelectedPhotos(prevPhotos => [...prevPhotos, ...files].slice(0, 5)); // Max 5 photos
+  };
+
+  const removePhoto = (index) => {
+    setSelectedPhotos(prevPhotos => prevPhotos.filter((_, i) => i !== index));
+  };
+
+  const handlePhotosUpload = async (e) => {
+    e.preventDefault();
+    if (selectedPhotos.length === 0) {
+      alert("Please select at least one photo");
+      return;
+    }
+
+    setUploadingPhotos(true);
+    try {
+      const formData = new FormData();
+      selectedPhotos.forEach(photo => {
+        formData.append('photos', photo);
+      });
+
+      const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      const response = await fetch(
+        `${baseUrl}/matches/${editingMatch._id}/photos`,
+        {
+          method: 'POST',
+          body: formData,
+          credentials: 'include',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        }
+      );
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || 'Photo upload failed');
+      }
+
+      alert("Photos uploaded successfully!");
+      setSelectedPhotos([]);
+      loadData(); // Refresh match data to show new photos
+    } catch (err) {
+      alert(`Upload failed: ${err.message}`);
+    } finally {
+      setUploadingPhotos(false);
     }
   };
 
@@ -251,12 +304,17 @@ export default function AdminDashboard() {
         {editingMatch && (
           <div className="fixed inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center z-50 p-4">
             <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}>
-              <GlassCard className="max-w-sm w-full p-6 border-blue-500/40">
+              <GlassCard className="max-w-2xl w-full p-6 border-blue-500/40 max-h-[90vh] overflow-y-auto">
                 <div className="flex justify-between items-center mb-6">
-                  <h3 className="font-bold text-white">Update Score</h3>
-                  <button onClick={() => setEditingMatch(null)}><X className="w-5 h-5 text-slate-400" /></button>
+                  <h3 className="font-bold text-white">{editingMatch.homeTeam} vs {editingMatch.awayTeam}</h3>
+                  <button onClick={() => { setEditingMatch(null); setSelectedPhotos([]); }}>
+                    <X className="w-5 h-5 text-slate-400" />
+                  </button>
                 </div>
-                <form onSubmit={handleQuickUpdate} className="space-y-4">
+
+                {/* Score Update Section */}
+                <form onSubmit={handleQuickUpdate} className="space-y-4 mb-6">
+                  <h4 className="text-sm text-slate-300 font-semibold">Update Match Score</h4>
                   <div className="flex gap-4 items-center justify-center">
                     <div className="text-center">
                       <p className="text-[10px] text-slate-500 mb-1 truncate w-20">{editingMatch.homeTeam}</p>
@@ -270,6 +328,78 @@ export default function AdminDashboard() {
                   </div>
                   <GradientButton className="w-full" type="submit">Update Results</GradientButton>
                 </form>
+
+                <div className="border-t border-white/10 pt-6">
+                  {/* Photos Section */}
+                  <h4 className="text-sm text-slate-300 font-semibold mb-4 flex items-center gap-2">
+                    <ImageIcon className="w-4 h-4" /> Upload Match Photos (Max 5)
+                  </h4>
+
+                  {/* Photo Preview */}
+                  {editingMatch.images && editingMatch.images.length > 0 && (
+                    <div className="mb-4">
+                      <p className="text-xs text-slate-400 mb-2">Current Photos: {editingMatch.images.length}</p>
+                      <div className="grid grid-cols-3 gap-2 mb-4">
+                        {editingMatch.images.map((img, idx) => (
+                          <img 
+                            key={idx} 
+                            src={img} 
+                            alt={`Match ${idx}`} 
+                            className="w-full h-24 object-cover rounded-lg border border-white/10"
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* File Input */}
+                  <div className="mb-4">
+                    <input 
+                      type="file" 
+                      multiple 
+                      accept="image/*" 
+                      onChange={handlePhotosChange}
+                      disabled={uploadingPhotos}
+                      className="w-full p-3 bg-slate-900 border border-dashed border-white/20 rounded-lg text-white text-sm file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:bg-blue-500/20 file:text-blue-300 hover:file:bg-blue-500/30 disabled:opacity-50"
+                    />
+                    <p className="text-[10px] text-slate-500 mt-1">
+                      {selectedPhotos.length > 0 
+                        ? `${selectedPhotos.length} file(s) selected` 
+                        : 'Select up to 5 images'}
+                    </p>
+                  </div>
+
+                  {/* Selected Photos Preview */}
+                  {selectedPhotos.length > 0 && (
+                    <div className="grid grid-cols-3 gap-2 mb-4">
+                      {selectedPhotos.map((photo, idx) => (
+                        <div key={idx} className="relative group">
+                          <img 
+                            src={URL.createObjectURL(photo)} 
+                            alt={`Selected ${idx}`} 
+                            className="w-full h-24 object-cover rounded-lg border border-white/20"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => removePhoto(idx)}
+                            className="absolute top-1 right-1 bg-red-500/80 hover:bg-red-600 p-1 rounded opacity-0 group-hover:opacity-100 transition"
+                          >
+                            <X className="w-3 h-3 text-white" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Upload Button */}
+                  <GradientButton 
+                    className="w-full" 
+                    onClick={handlePhotosUpload}
+                    disabled={selectedPhotos.length === 0 || uploadingPhotos}
+                  >
+                    {uploadingPhotos ? 'Uploading...' : `Upload ${selectedPhotos.length} Photo(s)`}
+                  </GradientButton>
+                </div>
               </GlassCard>
             </motion.div>
           </div>

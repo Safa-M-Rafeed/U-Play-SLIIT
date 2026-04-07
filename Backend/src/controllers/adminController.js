@@ -8,27 +8,39 @@ const seedTournaments = [
   {
     name: 'Inter-University Basketball Championship',
     sport: 'Basketball',
-    date: '2026-03-28',
-    registeredTeams: 14,
+    format: 'Knockout',
+    startDate: new Date('2026-03-28'),
+    endDate: new Date('2026-04-05'),
+    registrationDeadline: new Date('2026-03-20'),
+    venue: 'Main Sports Complex',
     maxTeams: 16,
+    registeredTeams: 14,
     matchesPlayed: 42,
-    status: 'Active'
+    status: 'Ongoing'
   },
   {
     name: 'Football Premier League',
     sport: 'Football',
-    date: '2026-04-05',
-    registeredTeams: 8,
+    format: 'League',
+    startDate: new Date('2026-04-05'),
+    endDate: new Date('2026-04-20'),
+    registrationDeadline: new Date('2026-03-25'),
+    venue: 'Football Ground A',
     maxTeams: 10,
+    registeredTeams: 8,
     matchesPlayed: 28,
-    status: 'Registration Open'
+    status: 'Upcoming'
   },
   {
     name: 'Cricket T20 Blast',
     sport: 'Cricket',
-    date: '2026-04-12',
-    registeredTeams: 6,
+    format: 'T20',
+    startDate: new Date('2026-04-12'),
+    endDate: new Date('2026-04-18'),
+    registrationDeadline: new Date('2026-04-01'),
+    venue: 'Cricket Stadium',
     maxTeams: 8,
+    registeredTeams: 6,
     matchesPlayed: 18,
     status: 'Upcoming'
   }

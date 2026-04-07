@@ -3,14 +3,15 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
 import { PublicRoute } from './components/auth/PublicRoute';
+import { TournamentProvider } from './context/TournamentContext';
 
 import { LoginPage } from './pages/LoginPage';
-import { RegisterPage } from './pages/RegisterPage';
-import { ProfilePage } from './pages/ProfilePage';
+import RegisterPage  from './pages/RegisterPage';
+import  ProfilePage from './pages/ProfilePage';
 
 import { StudentDashboard } from './pages/StudentDashboard';
 import { CaptainDashboard } from './pages/CaptainDashboard';
-import { AdminDashboard } from './pages/AdminDashboard';
+import  AdminDashboard  from './pages/AdminDashboard';
 
 // ✅ Match feature
 import CreateMatch from './pages/CreateMatch';
@@ -32,8 +33,9 @@ import EditTournament from './pages/tournament/EditTournament';
 
 export function App() {
   return (
-    <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-      <Routes>
+    <TournamentProvider>
+      <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+        <Routes>
 
         {/* Default */}
         <Route path='/' element={<Navigate to='/login' replace />} />
@@ -65,11 +67,12 @@ export function App() {
         <Route element={<ProtectedRoute allowedRoles={['captain']} />}>
           <Route path='/captain' element={<CaptainDashboard />} />
 
-          {/* Match-related fallback */}
-          <Route path='/captain/team' element={<Navigate to='/captain' replace />} />
+          {/* Team Management */}
+          <Route path='/captain/team' element={<CaptainDashboard />} />
+          <Route path='/captain/players' element={<CaptainDashboard />} />
+          <Route path='/captain/status' element={<CaptainDashboard />} />
 
           {/* Tournament features */}
-          <Route path='/captain/register' element={<RegisterTournamentPage />} />
           <Route path='/captain/tournaments' element={<TournamentList />} />
           <Route path='/captain/tournaments/:id' element={<TournamentDetail />} />
         </Route>
@@ -88,6 +91,9 @@ export function App() {
           <Route path='/admin/tournaments-insights' element={<TournamentsInsights />} />
           <Route path='/admin/insights-users' element={<InsightsUser />} />
 
+          {/* ✅ Approvals */}
+          <Route path='/admin/approvals' element={<AdminDashboard />} />
+
           {/* ✅ Tournament CRUD */}
           <Route path='/admin/tournaments' element={<TournamentList />} />
           <Route path='/admin/tournaments/create' element={<CreateTournament />} />
@@ -97,5 +103,6 @@ export function App() {
 
       </Routes>
     </BrowserRouter>
+    </TournamentProvider>
   );
 }

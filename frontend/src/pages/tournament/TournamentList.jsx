@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useTournaments } from '../../hooks/useTournaments';
+import { useTournamentContext } from '../../context/TournamentContext';
 import TournamentCard from '../../components/tournament/TournamentCard';
 import Spinner from '../../components/tournament/Spinner';
 import { generateFormat } from '../../lib/tournamentApi';
@@ -10,16 +10,30 @@ import '../../styles/tournament.css';
 export default function TournamentList() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const role = user?.role; // 'admin' | 'captain' | 'student'
+  const role = user?.role?.toLowerCase(); // normalize role values
 
-  const { tournaments, loading, error, refetch } = useTournaments();
+  const { tournaments: cachedTournaments, fetchTournaments, loading: contextLoading, error } = useTournamentContext();
   const [filter, setFilter]     = useState('All');
   const [search, setSearch]     = useState('');
   const [fgTeams, setFgTeams]   = useState('');
   const [fgDays, setFgDays]     = useState('');
   const [fgSport, setFgSport]   = useState('');
   const [fgResult, setFgResult] = useState(null);
+  const [loading, setLoading]   = useState(true);
 
+  // Initialize tournaments from context
+  useEffect(() => {
+    (async () => {
+      setLoading(true);
+      try {
+        await fetchTournaments();
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [fetchTournaments]);
+
+  const tournaments = cachedTournaments;
   const filters  = ['All', 'Ongoing', 'Upcoming', 'Completed'];
   const filtered = tournaments
     .filter(t => filter === 'All' || t.status === filter)
@@ -182,7 +196,7 @@ export default function TournamentList() {
                   tournament={t}
                   role={role}
                   // Admin gets edit/delete controls; others get none
-                  onRefresh={role === 'admin' ? refetch : undefined}
+                  onRefresh={role === 'admin' ? () => fetchTournaments(true) : undefined}
                   // All roles navigate to their own detail path
                   onView={() => navigate(detailPath(t._id))}
                 />

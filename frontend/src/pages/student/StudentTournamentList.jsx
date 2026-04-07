@@ -1,9 +1,16 @@
-import { useState } from "react";
-import { useTournaments } from "../../hooks/useTournaments";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { useTournamentContext } from "../../context/TournamentContext";
 
 export default function StudentTournamentList() {
-  const { tournaments, loading, error } = useTournaments();
+  const navigate = useNavigate();
+  const { tournaments, loading, error, fetchTournaments } = useTournamentContext();
   const [filter, setFilter] = useState("All");
+
+  // Fetch tournaments on component mount
+  useEffect(() => {
+    fetchTournaments();
+  }, [fetchTournaments]);
 
   const filters = ["All", "Ongoing", "Upcoming", "Completed"];
 
@@ -108,7 +115,10 @@ export default function StudentTournamentList() {
               </div>
 
               {/* Action */}
-              <button className="mt-4 w-full text-xs py-2 rounded-lg border border-[var(--color-border)] text-white hover:bg-white/5 transition">
+              <button 
+                onClick={() => navigate(`/student/tournaments/${t._id}`)}
+                className="mt-4 w-full text-xs py-2 rounded-lg border border-[var(--color-border)] text-white hover:bg-white/5 transition"
+              >
                 View Details
               </button>
             </div>

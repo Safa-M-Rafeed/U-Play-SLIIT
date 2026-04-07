@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getTournament, addAnnouncement, cloneTournament, deleteTournament } from '../../lib/tournamentApi';
 import { useAuth } from '../../context/AuthContext';
+import { useTournamentContext } from '../../context/TournamentContext';
 import HealthRing from '../../components/tournament/HealthRing';
 import ConflictAlert from '../../components/tournament/ConflictAlert';
 import DeleteModal from '../../components/tournament/DeleteModal';
@@ -13,7 +14,8 @@ export default function TournamentDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const role = user?.role; // 'admin' | 'captain' | 'student'
+  const { getTournamentById, fetchTournaments, updateTournamentInCache, removeTournamentFromCache } = useTournamentContext();
+  const role = user?.role?.toLowerCase(); // normalize role values
 
   const [tournament, setTournament] = useState(null);
   const [loading, setLoading]       = useState(true);
@@ -31,11 +33,31 @@ export default function TournamentDetail() {
 
   useEffect(() => {
     (async () => {
-      try { const { data } = await getTournament(id); setTournament(data); }
-      catch { setToast({ message: 'Failed to load tournament', type: 'error' }); }
-      finally { setLoading(false); }
+      try {
+        setLoading(true);
+        // First, try to get from cache
+        let cachedTournament = getTournamentById(id);
+        
+        // If not in cache, fetch all tournaments
+        if (!cachedTournament) {
+          await fetchTournaments();
+          cachedTournament = getTournamentById(id);
+        }
+        
+        // If still not found, fetch individual tournament
+        if (!cachedTournament) {
+          const { data } = await getTournament(id);
+          setTournament(data);
+        } else {
+          setTournament(cachedTournament);
+        }
+      } catch {
+        setToast({ message: 'Failed to load tournament', type: 'error' });
+      } finally {
+        setLoading(false);
+      }
     })();
-  }, [id]);
+  }, [id, getTournamentById, fetchTournaments]);
 
   // ── Admin-only handlers ──────────────────────────────────────────────────
   const handleAnn = async e => {
@@ -48,6 +70,7 @@ export default function TournamentDetail() {
     try {
       const { data } = await addAnnouncement(id, ann);
       setTournament(data);
+      updateTournamentInCache(id, data);
       setAnn({ title: '', message: '' });
       setAnnErrors({});
       setToast({ message: 'Announcement posted!', type: 'success' });
@@ -64,7 +87,11 @@ export default function TournamentDetail() {
   };
 
   const handleDelete = async () => {
-    try { await deleteTournament(id); navigate('/admin/tournaments'); }
+    try { 
+      await deleteTournament(id);
+      removeTournamentFromCache(id);
+      navigate('/admin/tournaments'); 
+    }
     catch { setToast({ message: 'Delete failed', type: 'error' }); }
   };
   // ────────────────────────────────────────────────────────────────────────
