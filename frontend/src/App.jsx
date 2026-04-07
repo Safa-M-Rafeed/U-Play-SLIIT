@@ -7,6 +7,8 @@ import { RegisterPage }     from './pages/RegisterPage';
 import { ProfilePage }      from './pages/ProfilePage';
 import { StudentDashboard } from './pages/StudentDashboard';
 import { CaptainDashboard } from './pages/CaptainDashboard';
+import { AdminDashboard } from './pages/AdminDashboard';
+import RegisterTournamentPage from './pages/RegisterTournamentPage';
 import { Insights } from './pages/Insights';
 import { TournamentsInsights } from './pages/TournamentsInsights';
 import { InsightsUser } from './pages/InsightsUser';
@@ -21,6 +23,8 @@ export function App() {
   return (
     <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <Routes>
+        <Route path="/" element={<Navigate to="/login" replace />} />
+
         <Route path='/' element={<Navigate to='/login' replace />} />
 
         {/* ── Public ── */}
@@ -41,6 +45,11 @@ export function App() {
           <Route path='/student/tournaments/:id' element={<TournamentDetail />} />
           <Route path='/student/fixtures'        element={<Navigate to='/student' replace />} />
           <Route path='/student/leaderboard'     element={<Navigate to='/student' replace />} />
+        </Route>
+
+        <Route element={<ProtectedRoute allowedRoles={['captain']} />}>
+          <Route path="/captain" element={<CaptainDashboard />} />
+          <Route path="/captain/register" element={<RegisterTournamentPage />} />
         </Route>
 
         {/* ── Captain: view + register ── */}
