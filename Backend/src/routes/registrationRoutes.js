@@ -10,6 +10,7 @@ const router = express.Router();
 router.post("/", registerTeamForTournament);
 router.get("/captain/:captainId", getRegistrationsByCaptainId);
 router.put("/:id/reregister", reRegisterTournament);
+<<<<<<< HEAD
 
 export default router;
 const express = require('express');
@@ -237,6 +238,8 @@ router.post('/', authMiddleware, async (req, res) => {
     });
   }
 });
+=======
+>>>>>>> ab355e2 (Updated team management component)
 
 /**
  * @route   PUT /api/registrations/:id/approve

@@ -2,6 +2,19 @@ import mongoose from "mongoose";
 
 const registrationSchema = new mongoose.Schema(
   {
+<<<<<<< HEAD
+=======
+    tournamentId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Tournament",
+      required: true
+    },
+    tournamentName: {
+      type: String,
+      required: true,
+      trim: true
+    },
+>>>>>>> ab355e2 (Updated team management component)
     teamId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Team",
@@ -13,6 +26,7 @@ const registrationSchema = new mongoose.Schema(
       trim: true
     },
     captainId: {
+<<<<<<< HEAD
       type: String,
       required: true,
       trim: true
@@ -21,6 +35,11 @@ const registrationSchema = new mongoose.Schema(
       type: String,
       required: true,
       trim: true
+=======
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true
+>>>>>>> ab355e2 (Updated team management component)
     },
     status: {
       type: String,
@@ -30,6 +49,18 @@ const registrationSchema = new mongoose.Schema(
     rejectionReason: {
       type: String,
       default: ""
+<<<<<<< HEAD
+=======
+    },
+    approvedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null
+    },
+    approvedAt: {
+      type: Date,
+      default: null
+>>>>>>> ab355e2 (Updated team management component)
     }
   },
   {

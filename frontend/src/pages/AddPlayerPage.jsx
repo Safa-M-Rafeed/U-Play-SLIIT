@@ -78,7 +78,7 @@ function AddPlayerPage({ team, onBack, onUpdateTeam }) {
       <div style={styles.container}>
         <h2 style={styles.heading}>Add Player</h2>
         <p style={styles.subText}>
-          Add a new player to <strong>{team.teamName}</strong>
+          Add a new player to <strong>{team?.teamName}</strong>
         </p>
 
         <div style={styles.formBox}>
@@ -145,12 +145,16 @@ const styles = {
     marginBottom: "14px"
   },
   backBtn: {
-    padding: "8px 16px",
-    cursor: "pointer",
-    backgroundColor: "#f0f0f0",
-    border: "1px solid #ccc",
-    borderRadius: "8px"
-  },
+  padding: "10px 18px",
+  cursor: "pointer",
+  background: "linear-gradient(90deg, #1e293b, #334155)",
+  color: "#ffffff",
+  border: "1px solid rgba(255,255,255,0.16)",
+  borderRadius: "10px",
+  fontWeight: "600",
+  fontSize: "14px",
+  boxShadow: "0 8px 20px rgba(0,0,0,0.2)"
+},
   container: {
     background: "rgba(15,23,42,0.75)",
     border: "1px solid rgba(148,163,184,0.14)",
