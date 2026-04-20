@@ -102,3 +102,8 @@ export const deleteMatch = async (matchId) => {
     );
     return response.data;
 };
+
+export const updateMatch = async (matchId, matchData) => {
+  const response = await axios.put(`${API_URL}/matches/${matchId}`, matchData);
+  return response.data;
+};
