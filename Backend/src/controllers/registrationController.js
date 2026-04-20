@@ -1,22 +1,39 @@
+import mongoose from "mongoose";
 import Registration from "../models/Registration.js";
 import Team from "../models/Team.js";
+import Tournament from "../models/Tournament.js";
 
 // REGISTER TEAM FOR TOURNAMENT
 export const registerTeamForTournament = async (req, res) => {
   try {
-    const { teamId, tournament } = req.body;
+    const { teamId, tournamentId } = req.body;
 
-    if (!teamId || !tournament) {
+    if (!teamId || !tournamentId) {
       return res.status(400).json({
-        message: "teamId and tournament are required"
+        message: "teamId and tournamentId are required"
+      });
+    }
+
+    if (
+      !mongoose.Types.ObjectId.isValid(teamId) ||
+      !mongoose.Types.ObjectId.isValid(tournamentId)
+    ) {
+      return res.status(400).json({
+        message: "Invalid teamId or tournamentId"
       });
     }
 
     const team = await Team.findById(teamId);
-
     if (!team) {
       return res.status(404).json({
         message: "Team not found"
+      });
+    }
+
+    const tournament = await Tournament.findById(tournamentId);
+    if (!tournament) {
+      return res.status(404).json({
+        message: "Tournament not found"
       });
     }
 
@@ -26,46 +43,46 @@ export const registerTeamForTournament = async (req, res) => {
       });
     }
 
-    const alreadyInTeamDoc = (team.registrations || []).some(
-      (item) => item.tournament === tournament
-    );
-
-    if (alreadyInTeamDoc) {
-      return res.status(400).json({
-        message: "This team is already registered for the selected tournament"
-      });
-    }
-
     const existingRegistration = await Registration.findOne({
       teamId: team._id,
-      tournament
+      tournamentId: tournament._id
     });
 
     if (existingRegistration) {
       return res.status(400).json({
-        message: "Registration already exists for this tournament"
+        message: "This team is already registered for this tournament"
       });
     }
 
     const registration = await Registration.create({
+      tournamentId: tournament._id,
+      tournamentName: tournament.name,
       teamId: team._id,
       teamName: team.teamName,
       captainId: team.captainId,
-      tournament,
       status: "Pending",
       rejectionReason: ""
     });
 
-    team.registrations.push({
-      tournament,
-      status: "Pending",
-      rejectionReason: ""
-    });
+    const alreadyInTeamDoc = (team.registrations || []).some(
+      (item) =>
+        String(item.tournamentId) === String(tournament._id) ||
+        item.tournament === tournament.name
+    );
 
-    await team.save();
+    if (!alreadyInTeamDoc) {
+      team.registrations.push({
+        tournamentId: tournament._id,
+        tournament: tournament.name,
+        status: "Pending",
+        rejectionReason: "",
+        submittedAt: registration.createdAt
+      });
+      await team.save();
+    }
 
     res.status(201).json({
-      message: "Team registered successfully",
+      message: "Registration request submitted successfully",
       registration,
       team
     });
@@ -82,9 +99,9 @@ export const getRegistrationsByCaptainId = async (req, res) => {
   try {
     const { captainId } = req.params;
 
-    const registrations = await Registration.find({ captainId }).sort({
-      createdAt: -1
-    });
+    const registrations = await Registration.find({ captainId })
+      .sort({ createdAt: -1 })
+      .lean();
 
     res.status(200).json(registrations);
   } catch (error) {
@@ -108,20 +125,31 @@ export const reRegisterTournament = async (req, res) => {
       });
     }
 
+    if (registration.status !== "Rejected") {
+      return res.status(400).json({
+        message: "Only rejected registrations can be re-submitted"
+      });
+    }
+
     registration.status = "Pending";
     registration.rejectionReason = "";
+    registration.approvedBy = null;
+    registration.approvedAt = null;
     await registration.save();
 
     const team = await Team.findById(registration.teamId);
 
     if (team) {
       const item = team.registrations.find(
-        (r) => r.tournament === registration.tournament
+        (r) =>
+          String(r.tournamentId) === String(registration.tournamentId) ||
+          r.tournament === registration.tournamentName
       );
 
       if (item) {
         item.status = "Pending";
         item.rejectionReason = "";
+        item.submittedAt = registration.updatedAt;
         await team.save();
       }
     }

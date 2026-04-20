@@ -1,55 +1,98 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+
+import { TournamentProvider } from './context/TournamentContext';
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
 import { PublicRoute } from './components/auth/PublicRoute';
+
+// ✅ Pages
+import HomePage from './pages/HomePage';
 import { LoginPage } from './pages/LoginPage';
-import { RegisterPage } from './pages/RegisterPage';
-import { ProfilePage } from './pages/ProfilePage';
+import RegisterPage from './pages/RegisterPage';
+import ProfilePage from './pages/ProfilePage';
+
 import { StudentDashboard } from './pages/StudentDashboard';
 import { CaptainDashboard } from './pages/CaptainDashboard';
-import { AdminDashboard } from './pages/AdminDashboard';
-import RegisterTournamentPage from './pages/RegisterTournamentPage';
+import AdminDashboard from './pages/AdminDashboard';
+
+// ✅ Match
+import CreateMatch from './pages/CreateMatch';
+import MatchSchedule from './pages/MatchSchedule';
+import MatchManagement from './pages/MatchManagement';
+import Leaderboard from './pages/Leaderboard';
+import FixturesPage from './pages/FixturesPage';
+
+// ✅ Tournament + Insights
+import CreateTournament from './pages/tournament/CreateTournament';
+import EditTournament from './pages/tournament/EditTournament';
+import TournamentList from './pages/tournament/TournamentList';
+import TournamentDetail from './pages/tournament/TournamentDetail';
+
+import { Insights } from './pages/Insights';
+import { TournamentsInsights } from './pages/TournamentsInsights';
+import { InsightsUser } from './pages/InsightsUser';
 
 export function App() {
   return (
-    <BrowserRouter
-      future={{
-        v7_startTransition: true,
-        v7_relativeSplatPath: true
-      }}
-    >
-      <Routes>
-        <Route path="/" element={<Navigate to="/login" replace />} />
+    <TournamentProvider>
+      <BrowserRouter>
+        <Routes>
 
-        <Route element={<PublicRoute />}>
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<RegisterPage />} />
-        </Route>
+          {/* ✅ Homepage */}
+          <Route path='/' element={<HomePage />} />
+          <Route path='/home' element={<HomePage />} />
 
-        <Route element={<ProtectedRoute />}>
-          <Route path="/profile" element={<ProfilePage />} />
-        </Route>
+          {/* ── Public ── */}
+          <Route element={<PublicRoute />}>
+            <Route path='/login' element={<LoginPage />} />
+            <Route path='/register' element={<RegisterPage />} />
+          </Route>
 
-        <Route element={<ProtectedRoute allowedRoles={['student']} />}>
-          <Route path="/student" element={<StudentDashboard />} />
-          <Route path="/student/tournaments" element={<Navigate to="/student" replace />} />
-          <Route path="/student/fixtures" element={<Navigate to="/student" replace />} />
-          <Route path="/student/leaderboard" element={<Navigate to="/student" replace />} />
-        </Route>
+          {/* ── Shared protected ── */}
+          <Route element={<ProtectedRoute />}>
+            <Route path='/profile' element={<ProfilePage />} />
+          </Route>
 
-        <Route element={<ProtectedRoute allowedRoles={['captain']} />}>
-          <Route path="/captain" element={<CaptainDashboard />} />
-          <Route path="/captain/register" element={<RegisterTournamentPage />} />
-        </Route>
+          {/* ── Student ── */}
+          <Route element={<ProtectedRoute allowedRoles={['student']} />}>
+            <Route path='/student' element={<StudentDashboard />} />
+            <Route path='/student/fixtures' element={<MatchSchedule />} />
+            <Route path='/student/leaderboard' element={<Leaderboard />} />
+            <Route path='/student/tournaments' element={<TournamentList />} />
+            <Route path='/student/tournaments/:id' element={<TournamentDetail />} />
+          </Route>
 
-        <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
-          <Route path="/admin" element={<AdminDashboard />} />
-          <Route path="/admin/tournaments" element={<Navigate to="/admin" replace />} />
-          <Route path="/admin/matches" element={<Navigate to="/admin" replace />} />
-          <Route path="/admin/approvals" element={<Navigate to="/admin" replace />} />
-          <Route path="/admin/results" element={<Navigate to="/admin" replace />} />
-        </Route>
-      </Routes>
-    </BrowserRouter>
+          {/* ── Captain ── */}
+          <Route element={<ProtectedRoute allowedRoles={['captain']} />}>
+            <Route path='/captain' element={<CaptainDashboard />} />
+            <Route path='/captain/team' element={<CaptainDashboard />} />
+            <Route path='/captain/players' element={<CaptainDashboard />} />
+            <Route path='/captain/status' element={<CaptainDashboard />} />
+            <Route path='/captain/tournaments' element={<TournamentList />} />
+            <Route path='/captain/tournaments/:id' element={<TournamentDetail />} />
+          </Route>
+
+          {/* ── Admin ── */}
+          <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
+            <Route path='/admin' element={<AdminDashboard />} />
+            <Route path='/admin/matches' element={<MatchManagement />} />
+            <Route path='/admin/create-match' element={<CreateMatch />} />
+            <Route path='/admin/leaderboard' element={<Leaderboard />} />
+            <Route path='/admin/insights' element={<Insights />} />
+            <Route path='/admin/tournaments-insights' element={<TournamentsInsights />} />
+            <Route path='/admin/insights-users' element={<InsightsUser />} />
+            <Route path='/admin/approvals' element={<AdminDashboard />} />
+            <Route path='/admin/tournaments' element={<TournamentList />} />
+            <Route path='/admin/tournaments/create' element={<CreateTournament />} />
+            <Route path='/admin/tournaments/:id' element={<TournamentDetail />} />
+            <Route path='/admin/tournaments/:id/edit' element={<EditTournament />} />
+          </Route>
+
+          {/* Catch all */}
+          <Route path='*' element={<Navigate to='/' />} />
+
+        </Routes>
+      </BrowserRouter>
+    </TournamentProvider>
   );
 }

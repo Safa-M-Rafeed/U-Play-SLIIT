@@ -1,300 +1,174 @@
-import React, { useEffect, useState } from "react";
-import { motion } from "framer-motion";
+import React, { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
+
 import {
   LayoutDashboardIcon,
+  UsersIcon,
+  UserPlusIcon,
   ClipboardListIcon,
-  PlusSquareIcon,
-  FolderKanbanIcon,
-  EyeIcon,
-  UserPlusIcon
-} from "lucide-react";
+  CheckCircleIcon,
+  TrophyIcon,
+  CalendarIcon,
+  PencilIcon,
+  TrashIcon,
+  ClockIcon,
+  XCircleIcon,
+} from 'lucide-react';
 
-import { DashboardLayout } from "../components/layout/DashboardLayout";
-import { GlassCard } from "../components/ui/GlassCard";
-import { useAuth } from "../context/AuthContext";
-import { getMediaUrl } from "../lib/media";
+import { DashboardLayout } from '../components/layout/DashboardLayout';
+import { GlassCard } from '../components/ui/GlassCard';
+import { GradientButton } from '../components/ui/GradientButton';
+import { useAuth } from '../context/AuthContext';
+import { getMediaUrl } from '../lib/media';
 
-import CreateTeam from "./CreateTeam";
-import TeamDashboard from "./TeamDashboard";
-import TeamDetails from "./TeamDetails";
-import AddPlayerPage from "./AddPlayerPage";
-import RegisterTournamentPage from "./RegisterTournamentPage";
+import TeamDashboard from './TeamDashboard';
+import AddPlayerPage from './AddPlayerPage';
+import TeamDetails from './TeamDetails';
 
 const sidebarItems = [
-  {
-    icon: <LayoutDashboardIcon className="w-5 h-5" />,
-    label: "Dashboard",
-    path: "/captain"
-  },
-  {
-    icon: <ClipboardListIcon className="w-5 h-5" />,
-    label: "Register Tournament",
-    path: "/captain/register"
-  }
+  { icon: <LayoutDashboardIcon className='w-5 h-5' />, label: 'Dashboard', path: '/captain' },
+  { icon: <UsersIcon className='w-5 h-5' />, label: 'My Team', path: '/captain/team' },
+  { icon: <UserPlusIcon className='w-5 h-5' />, label: 'Players', path: '/captain/players' },
+  { icon: <TrophyIcon className='w-5 h-5' />, label: 'Tournaments', path: '/captain/tournaments' },
+  { icon: <ClipboardListIcon className='w-5 h-5' />, label: 'Register Tournament', path: '/captain/register-tournament' },
+  { icon: <CheckCircleIcon className='w-5 h-5' />, label: 'Status', path: '/captain/status' },
 ];
 
 export function CaptainDashboard() {
   const { user } = useAuth();
+  const navigate = useNavigate();
 
-  const [activeView, setActiveView] = useState("dashboard");
-  const [teams, setTeams] = useState([]);
-  const [selectedTeam, setSelectedTeam] = useState(null);
+  const [team, setTeam] = useState(null);
+  const [activePanel, setActivePanel] = useState('dashboard');
+  const [loadingTeam, setLoadingTeam] = useState(false);
 
   const currentCaptainId =
-    user?.id || user?._id || user?.email || user?.username || "";
+    user?.id || user?._id || user?.email || user?.username || '';
 
-  const refreshTeamFromServer = async () => {
+  const fetchCaptainTeam = async () => {
     if (!currentCaptainId) return;
 
     try {
+      setLoadingTeam(true);
+
       const response = await fetch(
         `http://localhost:5000/api/teams/captain/${encodeURIComponent(currentCaptainId)}`
       );
 
       if (response.status === 404) {
-        setTeams([]);
-        setSelectedTeam(null);
+        setTeam(null);
         return;
       }
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || "Failed to fetch team");
+        throw new Error(data.message || 'Failed to fetch team');
       }
 
-      setTeams([data]);
-      setSelectedTeam((prev) => {
-        if (!prev) return data;
-        return prev._id === data._id || prev.id === data._id ? data : prev;
-      });
+      setTeam(data);
     } catch (error) {
-      console.error("Error fetching captain team:", error.message);
+      console.error('Error fetching team:', error.message);
+    } finally {
+      setLoadingTeam(false);
     }
   };
 
   useEffect(() => {
-    refreshTeamFromServer();
+    fetchCaptainTeam();
   }, [currentCaptainId]);
 
-  const captainTeams = teams;
+  const teamMembersCount = team?.players?.length || 0;
+  const tournamentsEnteredCount = team?.registrations?.length || 0;
+  const approvedCount =
+    team?.registrations?.filter((item) => item.status === 'Approved').length || 0;
+  const pendingCount =
+    team?.registrations?.filter((item) => item.status === 'Pending').length || 0;
 
-  const handleAddTeam = (team) => {
-    setTeams([team]);
-    setSelectedTeam(team);
-    setActiveView("create");
+  const teamInitials = useMemo(() => {
+    if (!team?.teamName) return 'TM';
+    const words = team.teamName.trim().split(' ').filter(Boolean);
+    if (words.length === 1) return words[0].slice(0, 2).toUpperCase();
+    return `${words[0][0]}${words[1][0]}`.toUpperCase();
+  }, [team?.teamName]);
+
+  const getRegistrationBadgeClass = (status) => {
+    if (status === 'Approved') return 'bg-green-500/10 text-green-400';
+    if (status === 'Rejected') return 'bg-red-500/10 text-red-400';
+    return 'bg-amber-500/10 text-amber-400';
   };
 
-  const handleSelectTeam = (team) => {
-    setSelectedTeam(team);
-    setActiveView("details");
-  };
-
-  const handleUpdateTeam = async (updatedTeam, stayOnCurrentView = false) => {
-    setTeams([updatedTeam]);
-    setSelectedTeam(updatedTeam);
-
-    if (!stayOnCurrentView) {
-      setActiveView("details");
-    }
-
-    await refreshTeamFromServer();
-  };
-
-  const handleDeleteTeam = async (teamId) => {
-    try {
-      const response = await fetch(`http://localhost:5000/api/teams/${teamId}`, {
-        method: "DELETE"
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || "Failed to delete team");
-      }
-
-      setTeams([]);
-      setSelectedTeam(null);
-      setActiveView("manage");
-      alert("Team deleted successfully ✅");
-    } catch (error) {
-      alert(error.message);
-    }
-  };
-
-  const handleQuickAction = (actionKey) => {
-    if (actionKey === "create") {
-      setActiveView("create");
-      return;
-    }
-
-    if (captainTeams.length === 0) {
-      alert("Please create a team first");
-      return;
-    }
-
-    const currentTeam = selectedTeam || captainTeams[0];
-    setSelectedTeam(currentTeam);
-
-    if (actionKey === "manage") {
-      setActiveView("manage");
-      return;
-    }
-
-    if (actionKey === "details") {
-      setActiveView("details");
-      return;
-    }
-
-    if (actionKey === "addPlayer") {
-      setActiveView("addPlayer");
-      return;
-    }
-
-    if (actionKey === "register") {
-      setActiveView("register");
-    }
-  };
-
-  const renderContent = () => {
-    if (activeView === "create") {
-      return <CreateTeam addTeam={handleAddTeam} />;
-    }
-
-    if (activeView === "manage") {
-      return (
-        <TeamDashboard
-          teams={captainTeams}
-          onSelectTeam={handleSelectTeam}
-          onUpdateTeam={handleUpdateTeam}
-          onDeleteTeam={handleDeleteTeam}
-        />
-      );
-    }
-
-    if (activeView === "details") {
-      if (!selectedTeam) {
-        return (
-          <div className="text-center text-slate-300 mt-10">
-            Please select your team from Manage Team.
-          </div>
-        );
-      }
-
-      return (
-        <TeamDetails
-          team={selectedTeam}
-          onBack={() => setActiveView("manage")}
-          onUpdateTeam={handleUpdateTeam}
-        />
-      );
-    }
-
-    if (activeView === "addPlayer") {
-      if (!selectedTeam) {
-        return (
-          <div className="text-center text-slate-300 mt-10">
-            Please select your team first.
-          </div>
-        );
-      }
-
-      return (
-        <AddPlayerPage
-          team={selectedTeam}
-          onBack={() => setActiveView("details")}
-          onUpdateTeam={handleUpdateTeam}
-        />
-      );
-    }
-
-    if (activeView === "register") {
-      if (!selectedTeam) {
-        return (
-          <div className="text-center text-slate-300 mt-10">
-            Please select your team first.
-          </div>
-        );
-      }
-
-      return <RegisterTournamentPage team={selectedTeam} />;
-    }
-
-    return (
-      <GlassCard>
-        <div className="text-slate-300">
-          <p className="text-lg font-semibold text-white mb-2">
-            Welcome to Team Management
-          </p>
-          <p>
-            Use the action cards above to create your team, manage your team,
-            view team details, add players, and use the sidebar to register for
-            tournaments.
-          </p>
-        </div>
-      </GlassCard>
-    );
+  const getRegistrationIcon = (status) => {
+    if (status === 'Approved') return <CheckCircleIcon className='w-4 h-4' />;
+    if (status === 'Rejected') return <XCircleIcon className='w-4 h-4' />;
+    return <ClockIcon className='w-4 h-4' />;
   };
 
   return (
     <DashboardLayout
       sidebarItems={sidebarItems}
-      userRole={user?.role || "captain"}
-      userName={user?.fullName || user?.name || "Captain"}
+      userRole={user?.role || 'captain'}
+      userName={user?.fullName || 'Captain'}
       userAvatar={getMediaUrl(user?.avatarUrl)}
-      pageTitle="Captain Dashboard"
+      pageTitle='Captain Dashboard'
     >
-      <div className="max-w-7xl mx-auto space-y-6">
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
-          <button
-            onClick={() => handleQuickAction("create")}
-            className="rounded-2xl border border-white/10 bg-white/5 hover:bg-white/10 transition-all p-6 text-left shadow-lg"
-          >
-            <div className="text-blue-400 mb-4">
-              <PlusSquareIcon className="w-7 h-7" />
-            </div>
-            <h3 className="text-lg font-semibold text-white">Create Team</h3>
-          </button>
+      <motion.div className='space-y-6 max-w-7xl mx-auto'>
 
-          <button
-            onClick={() => handleQuickAction("manage")}
-            className="rounded-2xl border border-white/10 bg-white/5 hover:bg-white/10 transition-all p-6 text-left shadow-lg"
-          >
-            <div className="text-purple-400 mb-4">
-              <FolderKanbanIcon className="w-7 h-7" />
+        {/* TEAM HEADER */}
+        <GlassCard className='flex items-center justify-between'>
+          <div className='flex items-center gap-5'>
+            <div className='w-20 h-20 rounded-2xl bg-blue-600 flex items-center justify-center text-2xl text-white'>
+              {team?.logo ? (
+                <img src={team.logo} alt='' className='w-full h-full object-cover' />
+              ) : (
+                teamInitials
+              )}
             </div>
-            <h3 className="text-lg font-semibold text-white">Manage Team</h3>
-          </button>
 
-          <button
-            onClick={() => handleQuickAction("details")}
-            className="rounded-2xl border border-white/10 bg-white/5 hover:bg-white/10 transition-all p-6 text-left shadow-lg"
-          >
-            <div className="text-green-400 mb-4">
-              <EyeIcon className="w-7 h-7" />
+            <div>
+              <h2 className='text-xl text-white font-bold'>
+                {team?.teamName || 'No Team'}
+              </h2>
+              <p className='text-slate-400 text-sm'>
+                {team?.sport || 'No sport selected'}
+              </p>
             </div>
-            <h3 className="text-lg font-semibold text-white">Team Details</h3>
-          </button>
+          </div>
 
-          <button
-            onClick={() => handleQuickAction("addPlayer")}
-            className="rounded-2xl border border-white/10 bg-white/5 hover:bg-white/10 transition-all p-6 text-left shadow-lg"
-          >
-            <div className="text-amber-400 mb-4">
-              <UserPlusIcon className="w-7 h-7" />
-            </div>
-            <h3 className="text-lg font-semibold text-white">Add Player</h3>
-          </button>
+          <GradientButton onClick={() => setActivePanel('editTeam')}>
+            <PencilIcon className='w-4 h-4 mr-2' /> Edit Team
+          </GradientButton>
+        </GlassCard>
+
+        {/* STATS */}
+        <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4'>
+          <GlassCard>Members: {teamMembersCount}</GlassCard>
+          <GlassCard>Tournaments: {tournamentsEnteredCount}</GlassCard>
+          <GlassCard>Approved: {approvedCount}</GlassCard>
+          <GlassCard>Pending: {pendingCount}</GlassCard>
         </div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.25 }}
-        >
-          {renderContent()}
-        </motion.div>
-      </div>
+        {/* REGISTRATION STATUS */}
+        <GlassCard>
+          <h3 className='text-white mb-3'>Registrations</h3>
+          <ul>
+            {team?.registrations?.length ? (
+              team.registrations.map((r, i) => (
+                <li key={i} className='flex justify-between py-2'>
+                  <span>{r.tournament}</span>
+                  <span className={getRegistrationBadgeClass(r.status)}>
+                    {getRegistrationIcon(r.status)} {r.status}
+                  </span>
+                </li>
+              ))
+            ) : (
+              <p className='text-slate-400'>No registrations yet</p>
+            )}
+          </ul>
+        </GlassCard>
+
+      </motion.div>
     </DashboardLayout>
   );
 }
