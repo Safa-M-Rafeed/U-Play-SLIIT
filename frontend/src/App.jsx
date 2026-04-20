@@ -25,11 +25,15 @@ import RegisterTournamentPage from './pages/RegisterTournamentPage';
 import { Insights } from './pages/Insights';
 import { TournamentsInsights } from './pages/TournamentsInsights';
 import { InsightsUser } from './pages/InsightsUser';
+import { InsightsTeams } from './pages/InsightsTeams';
+import { InsightsMatches } from './pages/InsightsMatches';
+import { StatsStudent } from './pages/StatsStudent';
 
 import TournamentList from './pages/tournament/TournamentList';
 import TournamentDetail from './pages/tournament/TournamentDetail';
 import CreateTournament from './pages/tournament/CreateTournament';
 import EditTournament from './pages/tournament/EditTournament';
+import { StatsCaptain } from './pages/StatsCaptain';
 
 export function App() {
   return (
@@ -58,6 +62,7 @@ export function App() {
           {/* ✅ KEEP BOTH */}
           <Route path='/student/fixtures' element={<MatchSchedule />} />
           <Route path='/student/leaderboard' element={<Leaderboard />} />
+          <Route path='/student/stats' element={<StatsStudent />} />
 
           <Route path='/student/tournaments' element={<TournamentList />} />
           <Route path='/student/tournaments/:id' element={<TournamentDetail />} />
@@ -71,6 +76,7 @@ export function App() {
           <Route path='/captain/team' element={<CaptainDashboard />} />
           <Route path='/captain/players' element={<CaptainDashboard />} />
           <Route path='/captain/status' element={<CaptainDashboard />} />
+          <Route path='/captain/stats' element={<StatsCaptain />} />
 
           {/* Tournament features */}
           <Route path='/captain/tournaments' element={<TournamentList />} />
@@ -90,6 +96,8 @@ export function App() {
           <Route path='/admin/insights' element={<Insights />} />
           <Route path='/admin/tournaments-insights' element={<TournamentsInsights />} />
           <Route path='/admin/insights-users' element={<InsightsUser />} />
+          <Route path='/admin/insights-teams' element={<InsightsTeams />} />
+          <Route path='/admin/insights-matches' element={<InsightsMatches />} />
 
           {/* ✅ Approvals */}
           <Route path='/admin/approvals' element={<AdminDashboard />} />

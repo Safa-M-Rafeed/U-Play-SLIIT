@@ -6,6 +6,7 @@ import {
   TrophyIcon,
   CalendarIcon,
   BarChart3Icon,
+  ActivityIcon,
   UserIcon,
   ZapIcon,
   StarIcon,
@@ -26,6 +27,7 @@ const sidebarItems = [
   { icon: <TrophyIcon  className='w-5 h-5' />, label: 'Tournaments', path: '/student/tournament' },
   { icon: <CalendarIcon className='w-5 h-5'/>, label: 'Fixtures',    path: '/student/fixtures'    },
   { icon: <BarChart3Icon className='w-5 h-5'/>,label: 'Leaderboard', path: '/student/leaderboard' },
+  { icon: <ActivityIcon className='w-5 h-5' />, label: 'Stats',      path: '/student/stats'       },
   { icon: <UserIcon    className='w-5 h-5' />, label: 'Profile',     path: '/profile'             },
 ];
 

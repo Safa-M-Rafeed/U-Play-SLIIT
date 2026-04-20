@@ -9,6 +9,7 @@ import {
   CheckCircleIcon,
   TrophyIcon,
   CalendarIcon,
+  BarChart3Icon,
   PencilIcon,
   TrashIcon,
   ClockIcon,
@@ -27,6 +28,7 @@ const sidebarItems = [
   { icon: <TrophyIcon          className='w-5 h-5' />, label: 'Tournaments',         path: '/captain/tournaments'},
   { icon: <ClipboardListIcon   className='w-5 h-5' />, label: 'Register Tournament', path: '/captain/tournaments'},
   { icon: <CheckCircleIcon     className='w-5 h-5' />, label: 'Status',              path: '/captain/status'    },
+  { icon: <BarChart3Icon       className='w-5 h-5' />, label: 'Stats',               path: '/captain/stats'     },
 ];
 
 const containerVariants = {

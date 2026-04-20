@@ -77,8 +77,10 @@ export function Insights() {
               onClick={() => {
                 if (metric.label === 'Tournaments') navigate('/admin/tournaments-insights');
                 if (metric.label === 'Users') navigate('/admin/insights-users');
+                if (metric.label === 'Teams') navigate('/admin/insights-teams');
+                if (metric.label === 'Matches') navigate('/admin/insights-matches');
               }}
-              className={(metric.label === 'Tournaments' || metric.label === 'Users') ? 'cursor-pointer' : ''}
+              className={(metric.label === 'Tournaments' || metric.label === 'Users' || metric.label === 'Teams' || metric.label === 'Matches') ? 'cursor-pointer' : ''}
             >
               <GlassCard hover className="border-white/10">
                 <div className="flex items-start justify-between gap-4">

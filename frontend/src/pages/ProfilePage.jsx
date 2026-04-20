@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
   CameraIcon,
+  ActivityIcon,
   BarChart3Icon,
   BellIcon,
   CalendarIcon,
@@ -53,6 +54,7 @@ function getSidebarItems(role) {
       { icon: <LayoutDashboardIcon className="w-5 h-5" />, label: 'Dashboard', path: '/captain' },
       { icon: <UsersIcon className="w-5 h-5" />, label: 'My Team', path: '/captain/team' },
       { icon: <TrophyIcon className="w-5 h-5" />, label: 'Tournaments', path: '/captain/register' },
+      { icon: <BarChart3Icon className="w-5 h-5" />, label: 'Stats', path: '/captain/stats' },
       { icon: <UserIcon className="w-5 h-5" />, label: 'Profile', path: '/profile' }
     ];
   }
@@ -71,6 +73,7 @@ function getSidebarItems(role) {
     { icon: <TrophyIcon className="w-5 h-5" />, label: 'Tournaments', path: '/student/tournaments' },
     { icon: <CalendarIcon className="w-5 h-5" />, label: 'Fixtures', path: '/student/fixtures' },
     { icon: <BarChart3Icon className="w-5 h-5" />, label: 'Leaderboard', path: '/student/leaderboard' },
+    { icon: <ActivityIcon className="w-5 h-5" />, label: 'Stats', path: '/student/stats' },
     { icon: <UserIcon className="w-5 h-5" />, label: 'Profile', path: '/profile' }
   ];
 }
