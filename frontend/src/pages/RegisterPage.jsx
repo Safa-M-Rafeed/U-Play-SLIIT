@@ -40,7 +40,7 @@ function getStrengthColor(score, index) {
   return 'bg-green-500';
 }
 
-export function RegisterPage() {
+export default function RegisterPage() {
   const navigate = useNavigate();
   const { register } = useAuth();
   const [fullName, setFullName] = useState('');

@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const announcementSchema = new mongoose.Schema({
   tournamentId: {
@@ -41,4 +41,4 @@ const announcementSchema = new mongoose.Schema({
 // Index for efficient querying
 announcementSchema.index({ tournamentId: 1, createdAt: -1 });
 
-module.exports = mongoose.model('Announcement', announcementSchema);
+export default mongoose.model('Announcement', announcementSchema);

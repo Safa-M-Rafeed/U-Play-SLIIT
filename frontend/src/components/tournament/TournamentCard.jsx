@@ -4,17 +4,18 @@ import { cloneTournament, deleteTournament } from '../../lib/tournamentApi';
 import DeleteModal from './DeleteModal';
 import Toast from './Toast';
  
-export default function TournamentCard({ tournament, onRefresh }) {
+export default function TournamentCard({ tournament, role = 'student', onRefresh, onView }) {
   const navigate = useNavigate();
   const [showDelete, setShowDelete] = useState(false);
   const [toast, setToast]           = useState(null);
+  const isAdmin = role === 'admin';
  
   const handleClone = async (e) => {
     e.stopPropagation();
     try {
       await cloneTournament(tournament._id);
       setToast({ message: 'Tournament cloned!', type: 'success' });
-      onRefresh();
+      if (onRefresh) onRefresh();
     } catch (err) { setToast({ message: 'Clone failed', type: 'error' }); }
   };
  
@@ -22,7 +23,7 @@ export default function TournamentCard({ tournament, onRefresh }) {
     try {
       await deleteTournament(tournament._id);
       setShowDelete(false);
-      onRefresh();
+      if (onRefresh) onRefresh();
     } catch (err) { setToast({ message: 'Delete failed', type: 'error' }); }
   };
  
@@ -36,7 +37,7 @@ export default function TournamentCard({ tournament, onRefresh }) {
       {showDelete && <DeleteModal name={tournament.name} onConfirm={handleDelete} onCancel={() => setShowDelete(false)} />}
  
       <div
-        onClick={() => navigate(`/admin/tournaments/${tournament._id}`)}
+        onClick={() => onView ? onView() : navigate(`/${role}/tournaments/${tournament._id}`)}
         style={{
           position: 'relative',
           background: 'rgba(255,255,255,0.05)',
@@ -48,12 +49,14 @@ export default function TournamentCard({ tournament, onRefresh }) {
         onMouseEnter={e => {
           e.currentTarget.style.background = 'rgba(255,255,255,0.08)';
           e.currentTarget.style.borderColor = 'rgba(16,185,129,0.4)';
-          e.currentTarget.querySelector('.actions').style.opacity = '1';
+          const actions = e.currentTarget.querySelector('.actions');
+          if (actions) actions.style.opacity = '1';
         }}
         onMouseLeave={e => {
           e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
           e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)';
-          e.currentTarget.querySelector('.actions').style.opacity = '0';
+          const actions = e.currentTarget.querySelector('.actions');
+          if (actions) actions.style.opacity = '0';
         }}
       >
         {/* Left accent bar */}
@@ -106,20 +109,22 @@ export default function TournamentCard({ tournament, onRefresh }) {
               </span>
             )}
           </div>
-          <div className='actions' style={{ display: 'flex', gap: '8px', opacity: 0, transition: 'opacity 0.2s' }}>
-            <button onClick={e => { e.stopPropagation(); navigate(`/admin/tournaments/${tournament._id}/edit`); }}
-              style={{ fontSize: '12px', padding: '4px 12px', borderRadius: '8px', border: '1px solid rgba(16,185,129,0.4)', color: '#10b981', background: 'transparent', cursor: 'pointer' }}>
-              Edit
-            </button>
-            <button onClick={handleClone}
-              style={{ fontSize: '12px', padding: '4px 12px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.6)', background: 'transparent', cursor: 'pointer' }}>
-              Clone
-            </button>
-            <button onClick={e => { e.stopPropagation(); setShowDelete(true); }}
-              style={{ fontSize: '12px', padding: '4px 12px', borderRadius: '8px', border: '1px solid rgba(239,68,68,0.3)', color: '#f87171', background: 'transparent', cursor: 'pointer' }}>
-              Delete
-            </button>
-          </div>
+          {isAdmin && (
+            <div className='actions' style={{ display: 'flex', gap: '8px', opacity: 0, transition: 'opacity 0.2s' }}>
+              <button onClick={e => { e.stopPropagation(); navigate(`/admin/tournaments/${tournament._id}/edit`); }}
+                style={{ fontSize: '12px', padding: '4px 12px', borderRadius: '8px', border: '1px solid rgba(16,185,129,0.4)', color: '#10b981', background: 'transparent', cursor: 'pointer' }}>
+                Edit
+              </button>
+              <button onClick={handleClone}
+                style={{ fontSize: '12px', padding: '4px 12px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.6)', background: 'transparent', cursor: 'pointer' }}>
+                Clone
+              </button>
+              <button onClick={e => { e.stopPropagation(); setShowDelete(true); }}
+                style={{ fontSize: '12px', padding: '4px 12px', borderRadius: '8px', border: '1px solid rgba(239,68,68,0.3)', color: '#f87171', background: 'transparent', cursor: 'pointer' }}>
+                Delete
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </>

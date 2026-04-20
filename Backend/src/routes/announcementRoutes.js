@@ -1,9 +1,10 @@
-const express = require('express');
+import express from 'express';
+import Announcement from '../models/Announcement.js';
+import Tournament from '../models/Tournament.js';
+import authMiddleware from '../middleware/auth.js';
+import adminOnly from '../middleware/adminOnly.js';
+
 const router = express.Router();
-const Announcement = require('../models/Announcement');
-const Tournament = require('../models/Tournament');
-const authMiddleware = require('../middleware/auth');
-const adminOnly = require('../middleware/adminOnly');
 
 /**
  * @route   GET /api/announcements/tournament/:tournamentId

@@ -1,4 +1,5 @@
 import express from 'express';
+import { protect, admin } from '../middleware/authMiddleware.js';
 import {
   getTournaments,
   getTournament,
@@ -12,13 +13,18 @@ import {
  
 const router = express.Router();
  
+// Public/Read routes
 router.get('/',                      getTournaments);
-router.post('/',                     createTournament);
-router.post('/generate-format',      generateFormat);
 router.get('/:id',                   getTournament);
-router.put('/:id',                   updateTournament);
-router.delete('/:id',               deleteTournament);
-router.post('/:id/clone',            cloneTournament);
-router.post('/:id/announcements',    addAnnouncement);
+router.post('/generate-format',      generateFormat);
+
+// Admin-only routes
+router.post('/',                     protect, admin, createTournament);
+router.put('/:id',                   protect, admin, updateTournament);
+router.delete('/:id',                protect, admin, deleteTournament);
+router.post('/:id/clone',            protect, admin, cloneTournament);
+
+// Admin-only announcements
+router.post('/:id/announcements',    protect, admin, addAnnouncement);
  
 export default router;
