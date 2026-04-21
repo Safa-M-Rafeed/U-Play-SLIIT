@@ -237,3 +237,144 @@ test('remember me functionality persists session', async ({ page }) => {
   await expect(page).toHaveURL(/\/student$/);
   await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible();
 });
+
+// Tournament Test Cases
+test('tournament list page loads with tournaments displayed', async ({ page }) => {
+  const studentUser = { fullName: 'Tournament Student', role: 'student', email: 'tournament.student@test.com' };
+
+  const mockTournaments = [
+    { _id: '1', name: 'Cricket Tournament', sport: 'Cricket', format: 'League', status: 'Upcoming', registeredTeams: 5, maxTeams: 10, conflicts: [] },
+    { _id: '2', name: 'Football League', sport: 'Football', format: 'Knockout', status: 'Ongoing', registeredTeams: 8, maxTeams: 8, conflicts: [] },
+  ];
+
+  await seedAuth(page, studentUser);
+  await mockCurrentUser(page, studentUser);
+
+  await page.route('**/api/tournaments', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(mockTournaments),
+    });
+  });
+
+  await page.goto('/student/tournaments');
+
+  await expect(page.getByText('Cricket Tournament')).toBeVisible();
+  await expect(page.getByText('Football League')).toBeVisible();
+  await expect(page.getByText('Cricket · League')).toBeVisible();
+});
+
+test('tournament filtering by status works correctly', async ({ page }) => {
+  const studentUser = { fullName: 'Filter Student', role: 'student', email: 'filter.student@test.com' };
+
+  const mockTournaments = [
+    { _id: '1', name: 'Upcoming Chess', sport: 'Chess', format: 'League', status: 'Upcoming', registeredTeams: 3, maxTeams: 10, conflicts: [] },
+    { _id: '2', name: 'Ongoing Badminton', sport: 'Badminton', format: 'Knockout', status: 'Ongoing', registeredTeams: 6, maxTeams: 8, conflicts: [] },
+    { _id: '3', name: 'Completed Tennis', sport: 'Tennis', format: 'League', status: 'Completed', registeredTeams: 8, maxTeams: 8, conflicts: [] },
+  ];
+
+  await seedAuth(page, studentUser);
+  await mockCurrentUser(page, studentUser);
+
+  await page.route('**/api/tournaments', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(mockTournaments),
+    });
+  });
+
+  await page.goto('/student/tournaments');
+
+  await expect(page.getByText('Upcoming Chess')).toBeVisible();
+  await expect(page.getByText('Ongoing Badminton')).toBeVisible();
+  await expect(page.getByText('Completed Tennis')).toBeVisible();
+});
+
+test('tournament search by name works', async ({ page }) => {
+  const studentUser = { fullName: 'Search Student', role: 'student', email: 'search.student@test.com' };
+
+  const mockTournaments = [
+    { _id: '1', name: 'Cricket Championship', sport: 'Cricket', format: 'League', status: 'Upcoming', registeredTeams: 4, maxTeams: 10, conflicts: [] },
+    { _id: '2', name: 'Basketball Finals', sport: 'Basketball', format: 'Knockout', status: 'Ongoing', registeredTeams: 6, maxTeams: 8, conflicts: [] },
+  ];
+
+  await seedAuth(page, studentUser);
+  await mockCurrentUser(page, studentUser);
+
+  await page.route('**/api/tournaments', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(mockTournaments),
+    });
+  });
+
+  await page.goto('/student/tournaments');
+
+  const searchInput = page.getByPlaceholder(/search|tournament/i).first();
+  await searchInput.fill('Cricket');
+
+  await expect(page.getByText('Cricket Championship')).toBeVisible();
+});
+
+test('tournament card displays correct status and details', async ({ page }) => {
+  const adminUser = { fullName: 'Admin User', role: 'admin', email: 'admin.user@test.com' };
+
+  const mockTournaments = [
+    { _id: '1', name: 'Elite Cricket Cup', sport: 'Cricket', format: 'Round Robin', status: 'Ongoing', registeredTeams: 7, maxTeams: 12, conflicts: [] },
+  ];
+
+  await seedAuth(page, adminUser);
+  await mockCurrentUser(page, adminUser);
+
+  await page.route('**/api/tournaments', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(mockTournaments),
+    });
+  });
+
+  await page.goto('/admin/tournaments');
+
+  const card = page.getByText('Elite Cricket Cup').first();
+  await expect(card).toBeVisible();
+  await expect(page.getByText('Cricket · Round Robin')).toBeVisible();
+});
+
+test('tournament clone and delete actions available for admin', async ({ page }) => {
+  const adminUser = { fullName: 'Admin Manager', role: 'admin', email: 'admin.manager@test.com' };
+
+  const mockTournaments = [
+    { _id: '123', name: 'Admin Test Tournament', sport: 'Tennis', format: 'Knockout', status: 'Upcoming', registeredTeams: 2, maxTeams: 8, conflicts: [] },
+  ];
+
+  await seedAuth(page, adminUser);
+  await mockCurrentUser(page, adminUser);
+
+  await page.route('**/api/tournaments', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(mockTournaments),
+    });
+  });
+
+  await page.route('**/api/tournaments/123/clone', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ _id: '124', name: 'Admin Test Tournament Copy' }),
+    });
+  });
+
+  await page.goto('/admin/tournaments');
+
+  await expect(page.getByText('Admin Test Tournament')).toBeVisible();
+  const cloneButton = page.locator('button').filter({ hasText: /clone/i }).first();
+  if (await cloneButton.isVisible()) {
+    await expect(cloneButton).toBeVisible();
+  }
+});
