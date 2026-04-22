@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import {
   ArrowLeftIcon,
   BarChart3Icon,
+  DownloadIcon,
+  XIcon,
   ShieldCheckIcon,
   SwordsIcon,
   TrophyIcon,
@@ -21,11 +23,15 @@ import {
   YAxis,
   Bar,
 } from 'recharts';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import { DashboardLayout } from '../components/layout/DashboardLayout';
 import { GlassCard } from '../components/ui/GlassCard';
 import { useAuth } from '../context/AuthContext';
 import { getMediaUrl } from '../lib/media';
 import { getAdminDashboard, getAdminTeams } from '../lib/api';
+
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 const sidebarItems = [
   { icon: <UsersIcon className="w-5 h-5" />, label: 'Users', path: '/admin' },
@@ -52,6 +58,9 @@ export function InsightsTeams() {
   const { user, token } = useAuth();
   const navigate = useNavigate();
   const [selectedSport, setSelectedSport] = useState('All');
+  const [selectedTeam, setSelectedTeam] = useState(null);
+  const [selectedTeamLoading, setSelectedTeamLoading] = useState(false);
+  const [selectedTeamError, setSelectedTeamError] = useState('');
   const [dashboard, setDashboard] = useState({
     stats: {
       totalUsers: 0,
@@ -147,6 +156,166 @@ export function InsightsTeams() {
 
     return teams.filter((team) => team.sportLabel === selectedSport);
   }, [teams, selectedSport]);
+
+  const normalizeTeamMembers = (team) => {
+    const players = Array.isArray(team?.players) ? team.players : [];
+
+    return players.map((player, index) => ({
+      id: player._id || `${team?.id || 'team'}-${index}`,
+      name: player.name || 'Unknown Player',
+      studentId: player.studentId || '-',
+      jerseyNumber: player.jerseyNumber ?? '-',
+      position: player.position || '-',
+    }));
+  };
+
+  const exportTeamPdf = (team) => {
+    if (!team) {
+      return;
+    }
+
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const startX = 40;
+    let cursorY = 44;
+    const members = normalizeTeamMembers(team);
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(18);
+    doc.setTextColor(15, 23, 42);
+    doc.text('Team Details Report', startX, cursorY);
+
+    cursorY += 18;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    doc.setTextColor(71, 85, 105);
+    doc.text(`Generated: ${new Date().toLocaleString()}`, startX, cursorY);
+
+    cursorY += 24;
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(13);
+    doc.setTextColor(15, 23, 42);
+    doc.text('Team Summary', startX, cursorY);
+
+    cursorY += 16;
+    doc.setDrawColor(226, 232, 240);
+    doc.line(startX, cursorY, pageWidth - startX, cursorY);
+    cursorY += 20;
+
+    const summaryRows = [
+      ['Team Name', team.teamLabel],
+      ['Captain', team.captainName],
+      ['Sport', team.sportLabel || 'Unknown'],
+      ['Status', team.status || 'Unknown'],
+      ['Organization', team.organization || 'No organization'],
+      ['Members', String(members.length)],
+      ['Chemistry Score', `${team.chemistryScore ?? 0}%`],
+      ['Joined', team.joined || 'Unknown'],
+    ];
+
+    autoTable(doc, {
+      startY: cursorY,
+      body: summaryRows,
+      theme: 'grid',
+      styles: {
+        font: 'helvetica',
+        fontSize: 9,
+        cellPadding: 6,
+        textColor: [15, 23, 42],
+        lineColor: [226, 232, 240],
+      },
+      columnStyles: {
+        0: { fontStyle: 'bold', fillColor: [248, 250, 252], cellWidth: 140 },
+        1: { cellWidth: 360 },
+      },
+      margin: { left: startX, right: startX },
+    });
+
+    cursorY = doc.lastAutoTable.finalY + 24;
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(13);
+    doc.setTextColor(15, 23, 42);
+    doc.text('Team Members', startX, cursorY);
+
+    cursorY += 16;
+    doc.setDrawColor(226, 232, 240);
+    doc.line(startX, cursorY, pageWidth - startX, cursorY);
+    cursorY += 16;
+
+    autoTable(doc, {
+      startY: cursorY,
+      head: [['Name', 'Student ID', 'Jersey', 'Position']],
+      body: members.length > 0
+        ? members.map((member) => [
+            member.name,
+            member.studentId,
+            String(member.jerseyNumber),
+            member.position,
+          ])
+        : [['No players added yet.', '-', '-', '-']],
+      theme: 'grid',
+      styles: {
+        font: 'helvetica',
+        fontSize: 9,
+        cellPadding: 6,
+        textColor: [15, 23, 42],
+        lineColor: [226, 232, 240],
+      },
+      headStyles: {
+        fillColor: [30, 41, 59],
+        textColor: [255, 255, 255],
+        fontStyle: 'bold',
+      },
+      alternateRowStyles: {
+        fillColor: [248, 250, 252],
+      },
+      margin: { left: startX, right: startX },
+    });
+
+    const teamSlug = String(team.teamLabel || 'team').toLowerCase().replace(/[^a-z0-9]+/g, '-');
+    const sportSlug = String(team.sportLabel || 'sport').toLowerCase().replace(/[^a-z0-9]+/g, '-');
+    const datePart = new Date().toISOString().slice(0, 10);
+
+    doc.save(`team-${teamSlug}-${sportSlug}-${datePart}.pdf`);
+  };
+
+  const handleTeamClick = async (team) => {
+    setSelectedTeam({ ...team, players: Array.isArray(team.players) ? team.players : [] });
+    setSelectedTeamError('');
+    setSelectedTeamLoading(true);
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/teams/${team.id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to load team details');
+      }
+
+      setSelectedTeam((currentTeam) => ({
+        ...currentTeam,
+        ...data,
+        id: data.id || data._id || currentTeam?.id,
+        teamLabel: data.teamName || currentTeam?.teamLabel || 'Unnamed Team',
+        sportLabel: (data.sport || currentTeam?.sportLabel || 'Unknown').trim() || 'Unknown',
+        captainName: data.captainName || data.captain || currentTeam?.captainName || 'Unknown',
+        organization: data.organization || currentTeam?.organization || '',
+        status: currentTeam?.status || data.status || 'Unknown',
+        joined: currentTeam?.joined,
+      }));
+    } catch (error) {
+      console.error('Failed to load team details:', error);
+      setSelectedTeamError(error.message || 'Unable to load team details');
+    } finally {
+      setSelectedTeamLoading(false);
+    }
+  };
 
   return (
     <DashboardLayout
@@ -331,7 +500,12 @@ export function InsightsTeams() {
           ) : filteredTeams.length > 0 ? (
             <div className="space-y-4">
               {filteredTeams.map((team) => (
-                <div key={team.id} className="flex items-center justify-between p-4 rounded-lg bg-white/5 border border-white/10">
+                <button
+                  key={team.id}
+                  type="button"
+                  onClick={() => handleTeamClick(team)}
+                  className="w-full text-left flex items-center justify-between p-4 rounded-lg bg-white/5 border border-white/10 transition-all duration-200 hover:bg-white/10 hover:border-white/20"
+                >
                   <div>
                     <p className="text-white font-medium">{team.teamLabel}</p>
                     <p className="text-sm text-slate-400">Captain: {team.captainName}</p>
@@ -343,7 +517,7 @@ export function InsightsTeams() {
                     </span>
                     <p className="text-xs text-slate-500 mt-1">{team.organization || 'No organization'}</p>
                   </div>
-                </div>
+                </button>
               ))}
             </div>
           ) : (
@@ -353,6 +527,106 @@ export function InsightsTeams() {
           )}
         </GlassCard>
       </div>
+
+      {selectedTeam && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-4xl max-h-[90vh] overflow-hidden rounded-3xl border border-white/10 bg-slate-950/95 shadow-2xl shadow-black/40">
+            <div className="flex items-center justify-between gap-4 border-b border-white/10 px-6 py-5">
+              <div>
+                <p className="text-xs uppercase tracking-[0.28em] text-slate-500">Team details</p>
+                <h3 className="mt-1 text-2xl font-semibold text-white">{selectedTeam.teamLabel}</h3>
+              </div>
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => exportTeamPdf(selectedTeam)}
+                  className="inline-flex items-center gap-2 rounded-xl bg-sky-500/15 px-4 py-2 text-sm font-medium text-sky-300 transition-colors hover:bg-sky-500/25"
+                >
+                  <DownloadIcon className="w-4 h-4" />
+                  Export PDF
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedTeam(null)}
+                  className="rounded-xl border border-white/10 p-2 text-slate-400 transition-colors hover:bg-white/5 hover:text-white"
+                  aria-label="Close team details"
+                >
+                  <XIcon className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            <div className="overflow-y-auto max-h-[calc(90vh-84px)] p-6 space-y-6">
+              {selectedTeamLoading ? (
+                <GlassCard className="border-white/10">
+                  <p className="text-slate-300">Loading team details...</p>
+                </GlassCard>
+              ) : (
+                <>
+                  {selectedTeamError && (
+                    <GlassCard className="border-red-500/20">
+                      <p className="text-red-300">{selectedTeamError}</p>
+                    </GlassCard>
+                  )}
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+                    <GlassCard className="border-white/10">
+                      <p className="text-sm text-slate-400">Captain</p>
+                      <p className="mt-2 text-lg font-medium text-white">{selectedTeam.captainName}</p>
+                    </GlassCard>
+                    <GlassCard className="border-white/10">
+                      <p className="text-sm text-slate-400">Sport</p>
+                      <p className="mt-2 text-lg font-medium text-white">{selectedTeam.sportLabel || 'Unknown'}</p>
+                    </GlassCard>
+                    <GlassCard className="border-white/10">
+                      <p className="text-sm text-slate-400">Status</p>
+                      <p className="mt-2 text-lg font-medium text-white">{selectedTeam.status || 'Unknown'}</p>
+                    </GlassCard>
+                    <GlassCard className="border-white/10">
+                      <p className="text-sm text-slate-400">Members</p>
+                      <p className="mt-2 text-lg font-medium text-white">{normalizeTeamMembers(selectedTeam).length}</p>
+                    </GlassCard>
+                  </div>
+
+                  <GlassCard className="border-white/10">
+                    <div className="flex items-center justify-between gap-4 mb-4">
+                      <h4 className="text-lg font-semibold text-white">Team Members</h4>
+                      <p className="text-sm text-slate-400">{normalizeTeamMembers(selectedTeam).length} listed</p>
+                    </div>
+
+                    {normalizeTeamMembers(selectedTeam).length > 0 ? (
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left border-collapse">
+                          <thead>
+                            <tr className="border-b border-white/10 text-slate-300">
+                              <th className="py-3 pr-4 font-medium">Name</th>
+                              <th className="py-3 pr-4 font-medium">Student ID</th>
+                              <th className="py-3 pr-4 font-medium">Jersey</th>
+                              <th className="py-3 pr-4 font-medium">Position</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {normalizeTeamMembers(selectedTeam).map((member) => (
+                              <tr key={member.id} className="border-b border-white/5 text-slate-200 last:border-b-0">
+                                <td className="py-3 pr-4">{member.name}</td>
+                                <td className="py-3 pr-4">{member.studentId}</td>
+                                <td className="py-3 pr-4">{member.jerseyNumber}</td>
+                                <td className="py-3 pr-4">{member.position}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    ) : (
+                      <p className="text-slate-400">No players added yet.</p>
+                    )}
+                  </GlassCard>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </DashboardLayout>
   );
 }

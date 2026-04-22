@@ -72,6 +72,9 @@ export function InsightsUser() {
 
   const [roleFilter, setRoleFilter] = useState('All');
   const [rangeFilter, setRangeFilter] = useState('Last 6 Months');
+  const [userSearch, setUserSearch] = useState('');
+  const [recentRoleFilter, setRecentRoleFilter] = useState('All');
+  const [recentStatusFilter, setRecentStatusFilter] = useState('All');
 
   const userStats = {
     total: dashboard.users.length,
@@ -143,6 +146,32 @@ export function InsightsUser() {
 
   const roleOptions = ['All', 'Student', 'Captain'];
   const rangeOptions = ['Last 3 Months', 'Last 6 Months', 'Last 12 Months', 'All Time'];
+
+  const recentRoleOptions = useMemo(() => {
+    const uniqueRoles = Array.from(new Set(dashboard.users.map((item) => item.role).filter(Boolean)));
+    return ['All', ...uniqueRoles.sort((a, b) => a.localeCompare(b))];
+  }, [dashboard.users]);
+
+  const recentStatusOptions = useMemo(() => {
+    const uniqueStatuses = Array.from(new Set(dashboard.users.map((item) => item.status).filter(Boolean)));
+    return ['All', ...uniqueStatuses.sort((a, b) => a.localeCompare(b))];
+  }, [dashboard.users]);
+
+  const filteredRecentUsers = useMemo(() => {
+    const term = userSearch.trim().toLowerCase();
+
+    return dashboard.users.filter((item) => {
+      const matchesSearch =
+        !term ||
+        item.name?.toLowerCase().includes(term) ||
+        item.email?.toLowerCase().includes(term);
+
+      const matchesRole = recentRoleFilter === 'All' || item.role === recentRoleFilter;
+      const matchesStatus = recentStatusFilter === 'All' || item.status === recentStatusFilter;
+
+      return matchesSearch && matchesRole && matchesStatus;
+    });
+  }, [dashboard.users, userSearch, recentRoleFilter, recentStatusFilter]);
 
   return (
     <DashboardLayout
@@ -320,15 +349,56 @@ export function InsightsUser() {
         </GlassCard>
 
         <GlassCard className="border-white/10">
-          <h2 className="text-xl font-semibold text-white mb-6">Recent Users</h2>
+          <div className="flex flex-col gap-4 mb-6">
+            <div className="flex items-center justify-between gap-4">
+              <h2 className="text-xl font-semibold text-white">Recent Users</h2>
+              <p className="text-sm text-slate-400">Showing {filteredRecentUsers.length} users</p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <input
+                type="text"
+                value={userSearch}
+                onChange={(e) => setUserSearch(e.target.value)}
+                placeholder="Search by name or email"
+                className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500/60"
+              />
+
+              <select
+                value={recentRoleFilter}
+                onChange={(e) => setRecentRoleFilter(e.target.value)}
+                className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-white"
+              >
+                {recentRoleOptions.map((role) => (
+                  <option key={role} value={role}>{role === 'All' ? 'All Roles' : role}</option>
+                ))}
+              </select>
+
+              <select
+                value={recentStatusFilter}
+                onChange={(e) => setRecentStatusFilter(e.target.value)}
+                className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-white"
+              >
+                {recentStatusOptions.map((status) => (
+                  <option key={status} value={status}>{status === 'All' ? 'All Statuses' : status}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
           {loading ? (
             <div className="text-center py-8">
               <p className="text-slate-400">Loading user data...</p>
             </div>
-          ) : dashboard.users.length > 0 ? (
+          ) : filteredRecentUsers.length > 0 ? (
             <div className="space-y-4">
-              {dashboard.users.slice(0, 10).map((user) => (
-                <div key={user.id} className="flex items-center justify-between p-4 rounded-lg bg-white/5 border border-white/10">
+              {filteredRecentUsers.map((user) => (
+                <button
+                  key={user.id}
+                  type="button"
+                  onClick={() => navigate(`/admin/insights-users/${user.id}`, { state: { user } })}
+                  className="w-full flex items-center justify-between p-4 rounded-lg bg-white/5 border border-white/10 text-left transition-all duration-200 hover:bg-white/10 hover:border-white/20"
+                >
                   <div className="flex items-center gap-4">
                     <div className="w-10 h-10 rounded-full bg-slate-600 flex items-center justify-center">
                       <UsersIcon className="w-5 h-5 text-slate-300" />
@@ -344,12 +414,12 @@ export function InsightsUser() {
                     </span>
                     <p className="text-xs text-slate-500 mt-1">{user.joined}</p>
                   </div>
-                </div>
+                </button>
               ))}
             </div>
           ) : (
             <div className="text-center py-8">
-              <p className="text-slate-400">No users found</p>
+              <p className="text-slate-400">No users match the selected filters</p>
             </div>
           )}
         </GlassCard>

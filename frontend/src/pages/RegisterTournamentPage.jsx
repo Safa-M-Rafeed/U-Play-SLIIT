@@ -4,15 +4,7 @@ import { useAuth } from "../context/AuthContext";
 function RegisterTournamentPage({ team: selectedTeamProp }) {
   const { user } = useAuth();
   const [selectedTeam, setSelectedTeam] = useState(null);
-  const [selectedTournament, setSelectedTournament] = useState("");
-  const [loading, setLoading] = useState(false);
-
-  const tournaments = [
-    "Football Championship",
-    "Cricket League",
-    "Esports Tournament",
-    "Basketball Cup"
-  ];
+  const [registrations, setRegistrations] = useState([]);
 
   const currentCaptainId =
     user?.id || user?._id || user?.email || user?.username || "";
@@ -51,76 +43,37 @@ function RegisterTournamentPage({ team: selectedTeamProp }) {
     fetchCaptainTeam();
   }, [currentCaptainId, selectedTeamProp]);
 
-  const handleRegister = async () => {
-    if (!selectedTeam) {
-      alert("No team found");
-      return;
-    }
+  useEffect(() => {
+    const fetchRegistrations = async () => {
+      if (!currentCaptainId) return;
 
-    if (!selectedTournament) {
-      alert("Please select a tournament");
-      return;
-    }
+      try {
+        const response = await fetch(
+          `http://localhost:5000/api/registrations/captain/${encodeURIComponent(currentCaptainId)}`
+        );
+        const data = await response.json();
 
-    try {
-      setLoading(true);
+        if (!response.ok) {
+          throw new Error(data.message || "Failed to fetch registrations");
+        }
 
-      const response = await fetch("http://localhost:5000/api/registrations", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          teamId: selectedTeam._id || selectedTeam.id,
-          tournament: selectedTournament
-        })
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || "Failed to register team");
+        setRegistrations(data);
+      } catch (error) {
+        console.error("Error fetching registrations:", error.message);
       }
-
-      setSelectedTeam(data.team);
-      setSelectedTournament("");
-
-      alert("✅ Team registered successfully! Status: Pending");
-    } catch (error) {
-      alert(error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const getStatusStyle = (status) => {
-    if (status === "Approved") {
-      return {
-        backgroundColor: "rgba(34,197,94,0.15)",
-        color: "#86efac",
-        border: "1px solid rgba(34,197,94,0.25)"
-      };
-    }
-
-    if (status === "Rejected") {
-      return {
-        backgroundColor: "rgba(239,68,68,0.15)",
-        color: "#fca5a5",
-        border: "1px solid rgba(239,68,68,0.25)"
-      };
-    }
-
-    return {
-      backgroundColor: "rgba(250,204,21,0.15)",
-      color: "#fde68a",
-      border: "1px solid rgba(250,204,21,0.25)"
     };
-  };
+
+    fetchRegistrations();
+  }, [currentCaptainId]);
+
+  const approvedRegistrations = registrations.filter(
+    (item) => item.status === "Approved"
+  );
 
   return (
     <div style={styles.wrapper}>
       <div style={styles.card}>
-        <h2 style={styles.heading}>Register Tournament</h2>
+        <h2 style={styles.heading}>Approved Tournament Entries</h2>
 
         {selectedTeam ? (
           <>
@@ -145,52 +98,28 @@ function RegisterTournamentPage({ team: selectedTeamProp }) {
               </p>
             </div>
 
-            <div style={styles.formGroup}>
-              <label style={styles.label}>Select Tournament</label>
-              <select
-                value={selectedTournament}
-                onChange={(e) => setSelectedTournament(e.target.value)}
-                style={styles.select}
-              >
-                <option value="" style={styles.option}>
-                  -- Select Tournament --
-                </option>
-                {tournaments.map((t, i) => (
-                  <option key={i} value={t} style={styles.option}>
-                    {t}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <button style={styles.button} onClick={handleRegister} disabled={loading}>
-              {loading ? "Registering..." : "Register Team"}
-            </button>
-
             <div style={styles.section}>
-              <h3 style={styles.subHeading}>My Registered Tournaments</h3>
+              <h3 style={styles.subHeading}>Approved Tournaments</h3>
 
-              {selectedTeam.registrations && selectedTeam.registrations.length > 0 ? (
+              {approvedRegistrations.length > 0 ? (
                 <div style={styles.list}>
-                  {selectedTeam.registrations.map((item, index) => (
-                    <div key={index} style={styles.listItem}>
+                  {approvedRegistrations.map((item) => (
+                    <div key={item._id} style={styles.listItem}>
                       <div>
-                        <p style={styles.tournamentName}>{item.tournament}</p>
+                        <p style={styles.tournamentName}>{item.tournamentName}</p>
+                        <p style={styles.dateText}>
+                          Approved on: {new Date(item.approvedAt || item.updatedAt || item.createdAt).toLocaleString()}
+                        </p>
                       </div>
 
-                      <span
-                        style={{
-                          ...styles.statusBadge,
-                          ...getStatusStyle(item.status)
-                        }}
-                      >
-                        {item.status}
-                      </span>
+                      <span style={styles.approvedBadge}>Approved</span>
                     </div>
                   ))}
                 </div>
               ) : (
-                <p style={styles.emptyText}>No tournaments registered yet.</p>
+                <p style={styles.emptyText}>
+                  No approved tournaments yet. Wait for admin approval.
+                </p>
               )}
             </div>
           </>
@@ -208,7 +137,7 @@ const styles = {
   wrapper: { display: "flex", justifyContent: "center", marginTop: "20px" },
   card: {
     width: "100%",
-    maxWidth: "720px",
+    maxWidth: "760px",
     background: "rgba(15,23,42,0.75)",
     border: "1px solid rgba(148,163,184,0.14)",
     borderRadius: "20px",
@@ -245,29 +174,6 @@ const styles = {
   },
   teamName: { color: "white", marginTop: "10px", fontSize: "24px", fontWeight: "700" },
   meta: { color: "#cbd5e1", margin: "5px 0" },
-  formGroup: { marginBottom: "18px" },
-  label: { color: "#cbd5e1", display: "block", marginBottom: "8px", fontWeight: "500" },
-  select: {
-    width: "100%",
-    padding: "12px",
-    borderRadius: "12px",
-    background: "#0f172a",
-    color: "white",
-    border: "1px solid rgba(255,255,255,0.15)",
-    outline: "none"
-  },
-  option: { backgroundColor: "#0f172a", color: "white" },
-  button: {
-    width: "100%",
-    padding: "12px",
-    borderRadius: "12px",
-    background: "linear-gradient(90deg, #22c55e, #16a34a)",
-    color: "white",
-    border: "none",
-    cursor: "pointer",
-    fontWeight: "600",
-    marginBottom: "28px"
-  },
   section: { marginTop: "10px" },
   subHeading: { color: "white", fontSize: "22px", fontWeight: "700", marginBottom: "16px" },
   list: { display: "flex", flexDirection: "column", gap: "14px" },
@@ -282,13 +188,17 @@ const styles = {
     gap: "12px"
   },
   tournamentName: { color: "white", margin: 0, fontSize: "16px", fontWeight: "600" },
-  statusBadge: {
+  dateText: { color: "#94a3b8", fontSize: "13px", marginTop: "6px" },
+  approvedBadge: {
     padding: "8px 14px",
     borderRadius: "999px",
     fontSize: "13px",
     fontWeight: "700",
     minWidth: "90px",
-    textAlign: "center"
+    textAlign: "center",
+    backgroundColor: "rgba(34,197,94,0.15)",
+    color: "#86efac",
+    border: "1px solid rgba(34,197,94,0.25)"
   },
   emptyText: { color: "#cbd5e1", textAlign: "center", marginTop: "10px" }
 };

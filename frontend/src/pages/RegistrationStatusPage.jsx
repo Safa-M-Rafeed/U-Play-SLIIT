@@ -125,14 +125,26 @@ function RegistrationStatusPage() {
             </div>
 
             <div style={styles.section}>
-              <h3 style={styles.subHeading}>My Tournament Registrations</h3>
+              <h3 style={styles.subHeading}>My Tournament Requests</h3>
 
               {registrations.length > 0 ? (
                 <div style={styles.list}>
                   {registrations.map((item) => (
                     <div key={item._id} style={styles.listItem}>
                       <div style={styles.leftBlock}>
-                        <p style={styles.tournamentName}>{item.tournament}</p>
+                        <p style={styles.tournamentName}>
+                          {item.tournamentName}
+                        </p>
+
+                        <p style={styles.dateText}>
+                          Submitted: {new Date(item.createdAt).toLocaleString()}
+                        </p>
+
+                        {item.status === "Approved" && item.approvedAt ? (
+                          <p style={styles.approvedText}>
+                            Approved: {new Date(item.approvedAt).toLocaleString()}
+                          </p>
+                        ) : null}
 
                         {item.status === "Rejected" && item.rejectionReason ? (
                           <p style={styles.reasonText}>
@@ -240,6 +252,8 @@ const styles = {
     gap: "10px"
   },
   tournamentName: { color: "white", margin: 0, fontSize: "16px", fontWeight: "600" },
+  dateText: { color: "#94a3b8", marginTop: "6px", fontSize: "13px" },
+  approvedText: { color: "#86efac", marginTop: "6px", fontSize: "13px" },
   reasonText: { color: "#fca5a5", marginTop: "6px", fontSize: "13px" },
   statusBadge: {
     padding: "8px 14px",

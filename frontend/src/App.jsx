@@ -1,19 +1,22 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 
+import { TournamentProvider } from './context/TournamentContext';
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
 import { PublicRoute } from './components/auth/PublicRoute';
-import { TournamentProvider } from './context/TournamentContext';
 
+// ✅ Pages
+import HomePage from './pages/HomePage';
 import { LoginPage } from './pages/LoginPage';
-import RegisterPage  from './pages/RegisterPage';
-import  ProfilePage from './pages/ProfilePage';
+import RegisterPage from './pages/RegisterPage';
+import ProfilePage from './pages/ProfilePage';
 
 import { StudentDashboard } from './pages/StudentDashboard';
+import { StatsStudent } from './pages/StatsStudent';
 import { CaptainDashboard } from './pages/CaptainDashboard';
-import  AdminDashboard  from './pages/AdminDashboard';
+import AdminDashboard from './pages/AdminDashboard';
 
-// ✅ Match feature
+// ✅ Match
 import CreateMatch from './pages/CreateMatch';
 import MatchSchedule from './pages/MatchSchedule';
 import MatchManagement from './pages/MatchManagement';
@@ -21,39 +24,38 @@ import Leaderboard from './pages/Leaderboard';
 import FixturesPage from './pages/FixturesPage';
 
 // ✅ Tournament + Insights
-import RegisterTournamentPage from './pages/RegisterTournamentPage';
+import CreateTournament from './pages/tournament/CreateTournament';
+import EditTournament from './pages/tournament/EditTournament';
+import TournamentList from './pages/tournament/TournamentList';
+import TournamentDetail from './pages/tournament/TournamentDetail';
+
 import { Insights } from './pages/Insights';
 import { TournamentsInsights } from './pages/TournamentsInsights';
 import { InsightsUser } from './pages/InsightsUser';
+import { InsightUser2 } from './pages/InsightUser2';
 import { InsightsTeams } from './pages/InsightsTeams';
 import { InsightsMatches } from './pages/InsightsMatches';
-import { StatsStudent } from './pages/StatsStudent';
-
-import TournamentList from './pages/tournament/TournamentList';
-import TournamentDetail from './pages/tournament/TournamentDetail';
-import CreateTournament from './pages/tournament/CreateTournament';
-import EditTournament from './pages/tournament/EditTournament';
-import { StatsCaptain } from './pages/StatsCaptain';
 
 export function App() {
   return (
     <TournamentProvider>
-      <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      <BrowserRouter>
         <Routes>
 
-        {/* Default */}
-        <Route path='/' element={<Navigate to='/login' replace />} />
+          {/* ✅ Homepage */}
+          <Route path='/' element={<HomePage />} />
+          <Route path='/home' element={<HomePage />} />
 
-        {/* ── Public ── */}
-        <Route element={<PublicRoute />}>
-          <Route path='/login' element={<LoginPage />} />
-          <Route path='/register' element={<RegisterPage />} />
-        </Route>
+          {/* ── Public ── */}
+          <Route element={<PublicRoute />}>
+            <Route path='/login' element={<LoginPage />} />
+            <Route path='/register' element={<RegisterPage />} />
+          </Route>
 
-        {/* ── Shared protected ── */}
-        <Route element={<ProtectedRoute />}>
-          <Route path='/profile' element={<ProfilePage />} />
-        </Route>
+          {/* ── Shared protected ── */}
+          <Route element={<ProtectedRoute />}>
+            <Route path='/profile' element={<ProfilePage />} />
+          </Route>
 
         {/* ── Student ── */}
         <Route element={<ProtectedRoute allowedRoles={['student']} />}>
@@ -76,7 +78,6 @@ export function App() {
           <Route path='/captain/team' element={<CaptainDashboard />} />
           <Route path='/captain/players' element={<CaptainDashboard />} />
           <Route path='/captain/status' element={<CaptainDashboard />} />
-          <Route path='/captain/stats' element={<StatsCaptain />} />
 
           {/* Tournament features */}
           <Route path='/captain/tournaments' element={<TournamentList />} />
@@ -96,6 +97,7 @@ export function App() {
           <Route path='/admin/insights' element={<Insights />} />
           <Route path='/admin/tournaments-insights' element={<TournamentsInsights />} />
           <Route path='/admin/insights-users' element={<InsightsUser />} />
+          <Route path='/admin/insights-users/:id' element={<InsightUser2 />} />
           <Route path='/admin/insights-teams' element={<InsightsTeams />} />
           <Route path='/admin/insights-matches' element={<InsightsMatches />} />
 
@@ -109,8 +111,11 @@ export function App() {
           <Route path='/admin/tournaments/:id/edit' element={<EditTournament />} />
         </Route>
 
-      </Routes>
-    </BrowserRouter>
+          {/* Catch all */}
+          <Route path='*' element={<Navigate to='/' />} />
+
+        </Routes>
+      </BrowserRouter>
     </TournamentProvider>
   );
 }
