@@ -3,55 +3,61 @@ import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 
+// --- PATH SETUP ---
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// This ensures we go up from src/middleware to the Backend root
-const uploadPath = path.join(__dirname, '../../uploads');
+// This ensures we go up from src/middleware to the Backend root 'uploads' folder
+const absoluteUploadPath = path.resolve(__dirname, '../../uploads');
 
-// Helper to ensure upload directory exists
-const uploadDir = 'uploads/';
-if (!fs.existsSync(uploadDir)) {
-    fs.mkdirSync(uploadDir);
+// Ensure the directory exists immediately
+if (!fs.existsSync(absoluteUploadPath)) {
+    fs.mkdirSync(absoluteUploadPath, { recursive: true });
 }
 
-const matchStorageConfig = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, uploadPath); 
-  },
-  filename: (req, file, cb) => {
-    cb(null, `${Date.now()}-${file.originalname}`);
-  }
-});
-
+// --- SHARED CONFIG ---
 const fileFilter = (req, file, cb) => {
-  if (file.mimetype.startsWith('image/')) {
-    cb(null, true);
-  } else {
-    cb(new Error('Only image files are allowed'), false);
-  }
+    if (file.mimetype.startsWith('image/')) {
+        cb(null, true);
+    } else {
+        cb(new Error('Only image files are allowed'), false);
+    }
 };
 
-export const uploadMatchPhotos = multer({ 
-  storage: matchStorageConfig,
-  fileFilter,
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+const limits = { fileSize: 5 * 1024 * 1024 }; // 5MB limit
+
+// --- MATCH PHOTOS CONFIG ---
+const matchStorageConfig = multer.diskStorage({
+    destination: (req, file, cb) => {
+        cb(null, absoluteUploadPath); //
+    },
+    filename: (req, file, cb) => {
+        // Sanitize filename to prevent issues with spaces/special chars
+        const safeName = file.originalname.replace(/\s+/g, '-');
+        cb(null, `${Date.now()}-${safeName}`); //
+    }
 });
 
-// Storage for Avatars (Optional keep)
+export const uploadMatchPhotos = multer({ 
+    storage: matchStorageConfig,
+    fileFilter,
+    limits 
+});
+
+// --- AVATAR CONFIG ---
 const avatarStorageConfig = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, 'uploads/');
-  },
-  filename: (req, file, cb) => {
-    const extension = path.extname(file.originalname).toLowerCase();
-    const userId = req.user?._id || 'guest';
-    cb(null, `avatar-${userId}-${Date.now()}${extension}`);
-  }
+    destination: (req, file, cb) => {
+        cb(null, absoluteUploadPath); 
+    },
+    filename: (req, file, cb) => {
+        const extension = path.extname(file.originalname).toLowerCase();
+        const userId = req.user?._id || 'guest';
+        cb(null, `avatar-${userId}-${Date.now()}${extension}`); //
+    }
 });
 
 export const uploadAvatar = multer({
-  storage: avatarStorageConfig,
-  fileFilter,
-  limits: { fileSize: 5 * 1024 * 1024 }
+    storage: avatarStorageConfig,
+    fileFilter,
+    limits
 });

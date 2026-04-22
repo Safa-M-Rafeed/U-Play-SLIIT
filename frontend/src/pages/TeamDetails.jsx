@@ -1,11 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 function TeamDetails({ team, onBack, onUpdateTeam }) {
-  const [isEditMode, setIsEditMode] = useState(false);
-  const [editIndex, setEditIndex] = useState(null);
-  const [showRemovePopup, setShowRemovePopup] = useState(false);
-  const [removeIndex, setRemoveIndex] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [selectedPlayerIndex, setSelectedPlayerIndex] = useState(0);
 
   const [playerData, setPlayerData] = useState({
     name: "",
@@ -14,47 +11,27 @@ function TeamDetails({ team, onBack, onUpdateTeam }) {
     position: ""
   });
 
-  const calculateChemistry = () => {
-    const playerCount = team.players.length;
-    let score = 0;
-
-    score += Math.min(playerCount * 10, 50);
-
-    const uniqueJerseys = new Set(team.players.map((p) => p.jerseyNumber));
-    if (uniqueJerseys.size === playerCount) {
-      score += 20;
+  useEffect(() => {
+    if (team?.players?.length > 0) {
+      const firstPlayer = team.players[0];
+      setSelectedPlayerIndex(0);
+      setPlayerData({
+        name: firstPlayer.name || "",
+        studentId: firstPlayer.studentId || "",
+        jerseyNumber: firstPlayer.jerseyNumber || "",
+        position: firstPlayer.position || ""
+      });
     }
+  }, [team]);
 
-    const positions = new Set(team.players.map((p) => p.position));
-    score += Math.min(positions.size * 10, 30);
-
-    return Math.min(score, 100);
-  };
-
-  const chemistryScore = calculateChemistry();
-
-  const handleEditClick = (index) => {
+  const handlePlayerChange = (index) => {
     const selectedPlayer = team.players[index];
-
+    setSelectedPlayerIndex(index);
     setPlayerData({
-      name: selectedPlayer.name,
-      studentId: selectedPlayer.studentId,
-      jerseyNumber: selectedPlayer.jerseyNumber,
-      position: selectedPlayer.position
-    });
-
-    setEditIndex(index);
-    setIsEditMode(true);
-  };
-
-  const handleCancelEdit = () => {
-    setIsEditMode(false);
-    setEditIndex(null);
-    setPlayerData({
-      name: "",
-      studentId: "",
-      jerseyNumber: "",
-      position: ""
+      name: selectedPlayer.name || "",
+      studentId: selectedPlayer.studentId || "",
+      jerseyNumber: selectedPlayer.jerseyNumber || "",
+      position: selectedPlayer.position || ""
     });
   };
 
@@ -80,7 +57,7 @@ function TeamDetails({ team, onBack, onUpdateTeam }) {
       setLoading(true);
 
       const response = await fetch(
-        `http://localhost:5000/api/teams/${team._id || team.id}/players/${editIndex}`,
+        `http://localhost:5000/api/teams/${team._id || team.id}/players/${selectedPlayerIndex}`,
         {
           method: "PUT",
           headers: {
@@ -101,7 +78,7 @@ function TeamDetails({ team, onBack, onUpdateTeam }) {
 
       await onUpdateTeam(data.team, true);
       alert("Player updated successfully ✅");
-      handleCancelEdit();
+      onBack();
     } catch (error) {
       alert(error.message);
     } finally {
@@ -109,49 +86,22 @@ function TeamDetails({ team, onBack, onUpdateTeam }) {
     }
   };
 
-  const handleRemoveClick = (index) => {
-    setRemoveIndex(index);
-    setShowRemovePopup(true);
-  };
+  if (!team?.players?.length) {
+    return (
+      <div style={styles.page}>
+        <div style={styles.topBar}>
+          <button onClick={onBack} style={styles.backBtn}>
+            ← Back
+          </button>
+        </div>
 
-  const handleConfirmRemove = async () => {
-    try {
-      setLoading(true);
-
-      const response = await fetch(
-        `http://localhost:5000/api/teams/${team._id || team.id}/players/${removeIndex}`,
-        {
-          method: "DELETE"
-        }
-      );
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || "Failed to remove player");
-      }
-
-      await onUpdateTeam(data.team, true);
-      setShowRemovePopup(false);
-      setRemoveIndex(null);
-      alert("Player removed successfully ✅");
-    } catch (error) {
-      alert(error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleCancelRemove = () => {
-    setShowRemovePopup(false);
-    setRemoveIndex(null);
-  };
-
-  const getChemistryColor = () => {
-    if (chemistryScore > 75) return "#22c55e";
-    if (chemistryScore > 50) return "#eab308";
-    return "#ef4444";
-  };
+        <div style={styles.container}>
+          <h2 style={styles.heading}>Edit Player Details</h2>
+          <p style={styles.subText}>No players available to edit.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={styles.page}>
@@ -162,39 +112,29 @@ function TeamDetails({ team, onBack, onUpdateTeam }) {
       </div>
 
       <div style={styles.container}>
-        <div style={styles.teamHeader}>
-          <div style={styles.logoWrapper}>
-            <img
-              src={team.logo}
-              alt=""
-              style={styles.logo}
-              onError={(e) => {
-                e.target.style.display = "none";
-                e.target.nextSibling.style.display = "flex";
-              }}
-            />
-            <div style={styles.logoFallback}>No Logo</div>
+        <h2 style={styles.heading}>Edit Player Details</h2>
+        <p style={styles.subText}>
+          Select a player and update the details below.
+        </p>
+
+        <div style={styles.formBox}>
+          <div style={styles.formGroup}>
+            <label style={styles.label}>Select Player</label>
+            <select
+              value={selectedPlayerIndex}
+              onChange={(e) => handlePlayerChange(Number(e.target.value))}
+              style={styles.selectInput}
+            >
+              {team.players.map((player, index) => (
+                <option key={index} value={index} style={styles.option}>
+                  {player.name} - #{player.jerseyNumber}
+                </option>
+              ))}
+            </select>
           </div>
 
-          <h2 style={styles.teamTitle}>{team.teamName}</h2>
-
-          <p style={styles.metaText}>
-            <strong>Captain:</strong> {team.captain || "Captain"}
-          </p>
-
-          <p style={styles.metaText}>
-            <strong>Players:</strong> {team.players?.length || 0}
-          </p>
-
-          <p style={{ ...styles.metaText, color: getChemistryColor(), fontWeight: "700" }}>
-            <strong>Chemistry Score:</strong> {chemistryScore}%
-          </p>
-        </div>
-
-        {isEditMode && (
-          <div style={styles.formBox}>
-            <h3 style={styles.formTitle}>Edit Player</h3>
-
+          <div style={styles.formGroup}>
+            <label style={styles.label}>Player Name</label>
             <input
               type="text"
               placeholder="Player Name"
@@ -204,7 +144,10 @@ function TeamDetails({ team, onBack, onUpdateTeam }) {
               }
               style={styles.input}
             />
+          </div>
 
+          <div style={styles.formGroup}>
+            <label style={styles.label}>Student ID</label>
             <input
               type="text"
               placeholder="Student ID"
@@ -214,7 +157,10 @@ function TeamDetails({ team, onBack, onUpdateTeam }) {
               }
               style={styles.input}
             />
+          </div>
 
+          <div style={styles.formGroup}>
+            <label style={styles.label}>Jersey Number</label>
             <input
               type="number"
               placeholder="Jersey Number"
@@ -224,7 +170,10 @@ function TeamDetails({ team, onBack, onUpdateTeam }) {
               }
               style={styles.input}
             />
+          </div>
 
+          <div style={styles.formGroup}>
+            <label style={styles.label}>Position</label>
             <input
               type="text"
               placeholder="Position"
@@ -234,83 +183,21 @@ function TeamDetails({ team, onBack, onUpdateTeam }) {
               }
               style={styles.input}
             />
-
-            <div style={styles.formActionRow}>
-              <button style={styles.updateBtn} onClick={handleUpdatePlayer} disabled={loading}>
-                {loading ? "Updating..." : "Update"}
-              </button>
-              <button style={styles.cancelBtn} onClick={handleCancelEdit}>
-                Cancel
-              </button>
-            </div>
           </div>
-        )}
 
-        {showRemovePopup && (
-          <div style={styles.popupOverlay}>
-            <div style={styles.popupBox}>
-              <p style={styles.popupText}>
-                Are you sure you want to remove this player?
-              </p>
-              <div style={styles.popupActionRow}>
-                <button
-                  style={styles.removeConfirmBtn}
-                  onClick={handleConfirmRemove}
-                  disabled={loading}
-                >
-                  {loading ? "Removing..." : "Yes, Remove"}
-                </button>
-                <button style={styles.cancelBtn} onClick={handleCancelRemove}>
-                  Cancel
-                </button>
-              </div>
-            </div>
+          <div style={styles.formActionRow}>
+            <button
+              style={styles.updateBtn}
+              onClick={handleUpdatePlayer}
+              disabled={loading}
+            >
+              {loading ? "Updating..." : "Update"}
+            </button>
+            <button style={styles.cancelBtn} onClick={onBack}>
+              Cancel
+            </button>
           </div>
-        )}
-
-        <h3 style={styles.playerTitle}>Player List</h3>
-
-        {team.players && team.players.length > 0 ? (
-          <div style={styles.tableWrapper}>
-            <table style={styles.table}>
-              <thead>
-                <tr>
-                  <th style={styles.th}>Name</th>
-                  <th style={styles.th}>Student ID</th>
-                  <th style={styles.th}>Jersey Number</th>
-                  <th style={styles.th}>Position</th>
-                  <th style={styles.th}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {team.players.map((player, index) => (
-                  <tr key={index}>
-                    <td style={styles.td}>{player.name}</td>
-                    <td style={styles.td}>{player.studentId}</td>
-                    <td style={styles.td}>{player.jerseyNumber}</td>
-                    <td style={styles.td}>{player.position}</td>
-                    <td style={styles.td}>
-                      <button
-                        style={styles.editBtn}
-                        onClick={() => handleEditClick(index)}
-                      >
-                        Edit
-                      </button>
-                      <button
-                        style={styles.removeBtn}
-                        onClick={() => handleRemoveClick(index)}
-                      >
-                        Remove
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <p style={styles.noPlayersText}>No players added yet.</p>
-        )}
+        </div>
       </div>
     </div>
   );
@@ -329,11 +216,15 @@ const styles = {
     marginBottom: "14px"
   },
   backBtn: {
-    padding: "8px 16px",
+    padding: "10px 18px",
     cursor: "pointer",
-    backgroundColor: "#f0f0f0",
-    border: "1px solid #ccc",
-    borderRadius: "8px"
+    background: "linear-gradient(90deg, #1e293b, #334155)",
+    color: "#ffffff",
+    border: "1px solid rgba(255,255,255,0.16)",
+    borderRadius: "10px",
+    fontWeight: "600",
+    fontSize: "14px",
+    boxShadow: "0 8px 20px rgba(0,0,0,0.2)"
   },
   container: {
     background: "rgba(15,23,42,0.75)",
@@ -342,124 +233,66 @@ const styles = {
     padding: "24px",
     boxShadow: "0 12px 30px rgba(0,0,0,0.18)"
   },
-  teamHeader: {
-    textAlign: "center",
-    marginBottom: "22px"
-  },
-  logoWrapper: {
-    width: "120px",
-    height: "120px",
-    margin: "0 auto 12px auto",
-    position: "relative"
-  },
-  logo: {
-    width: "100%",
-    height: "100%",
-    objectFit: "cover",
-    borderRadius: "16px",
-    display: "block"
-  },
-  logoFallback: {
-    width: "100%",
-    height: "100%",
-    borderRadius: "16px",
-    background: "rgba(255,255,255,0.08)",
-    color: "#cbd5e1",
-    display: "none",
-    alignItems: "center",
-    justifyContent: "center",
-    fontSize: "14px",
-    border: "1px dashed rgba(255,255,255,0.15)"
-  },
-  teamTitle: {
+  heading: {
     color: "white",
-    fontSize: "30px",
+    fontSize: "28px",
     fontWeight: "700",
-    marginBottom: "10px"
-  },
-  metaText: {
-    color: "#cbd5e1",
-    margin: "6px 0"
-  },
-  playerTitle: {
-    marginTop: "20px",
-    marginBottom: "14px",
-    color: "white",
-    fontSize: "24px",
-    fontWeight: "700"
-  },
-  tableWrapper: {
-    overflowX: "auto"
-  },
-  table: {
-    width: "100%",
-    borderCollapse: "collapse",
-    background: "rgba(255,255,255,0.03)",
-    borderRadius: "14px",
-    overflow: "hidden"
-  },
-  th: {
-    border: "1px solid rgba(255,255,255,0.08)",
-    padding: "12px",
-    backgroundColor: "rgba(255,255,255,0.08)",
-    color: "white",
-    fontWeight: "600"
-  },
-  td: {
-    border: "1px solid rgba(255,255,255,0.08)",
-    padding: "12px",
-    color: "#e2e8f0",
+    marginBottom: "8px",
     textAlign: "center"
   },
-  noPlayersText: {
-    textAlign: "center",
+  subText: {
     color: "#cbd5e1",
-    marginTop: "18px"
-  },
-  editBtn: {
-    marginRight: "8px",
-    padding: "6px 12px",
-    backgroundColor: "#2563eb",
-    color: "white",
-    border: "none",
-    borderRadius: "8px",
-    cursor: "pointer"
-  },
-  removeBtn: {
-    padding: "6px 12px",
-    backgroundColor: "#dc2626",
-    color: "white",
-    border: "none",
-    borderRadius: "8px",
-    cursor: "pointer"
+    textAlign: "center",
+    marginBottom: "20px"
   },
   formBox: {
-    maxWidth: "420px",
-    margin: "0 auto 24px auto",
+    maxWidth: "460px",
+    margin: "0 auto",
     padding: "20px",
     border: "1px solid rgba(255,255,255,0.1)",
     borderRadius: "16px",
     background: "rgba(255,255,255,0.05)",
     boxShadow: "0 8px 18px rgba(0,0,0,0.14)"
   },
-  formTitle: {
-    color: "white",
-    marginBottom: "14px",
-    textAlign: "center"
+  formGroup: {
+    marginBottom: "14px"
+  },
+  label: {
+    display: "block",
+    marginBottom: "8px",
+    color: "#e2e8f0",
+    fontSize: "14px",
+    fontWeight: "600"
   },
   input: {
     display: "block",
     width: "100%",
     padding: "10px 12px",
-    margin: "8px 0",
     boxSizing: "border-box",
     borderRadius: "10px",
-    border: "1px solid rgba(255,255,255,0.1)",
-    background: "rgba(255,255,255,0.06)",
-    color: "white"
+    border: "1px solid rgba(255,255,255,0.12)",
+    background: "rgba(15,23,42,0.9)",
+    color: "#ffffff",
+    fontSize: "14px"
+  },
+  selectInput: {
+    display: "block",
+    width: "100%",
+    padding: "10px 12px",
+    boxSizing: "border-box",
+    borderRadius: "10px",
+    border: "1px solid rgba(255,255,255,0.12)",
+    background: "#0f172a",
+    color: "#ffffff",
+    fontSize: "14px",
+    fontWeight: "500"
+  },
+  option: {
+    backgroundColor: "#0f172a",
+    color: "#ffffff"
   },
   formActionRow: {
-    marginTop: "12px",
+    marginTop: "18px",
     display: "flex",
     justifyContent: "center",
     gap: "10px"
@@ -470,7 +303,8 @@ const styles = {
     color: "white",
     border: "none",
     borderRadius: "10px",
-    cursor: "pointer"
+    cursor: "pointer",
+    fontWeight: "600"
   },
   cancelBtn: {
     padding: "10px 20px",
@@ -478,45 +312,8 @@ const styles = {
     color: "white",
     border: "none",
     borderRadius: "10px",
-    cursor: "pointer"
-  },
-  popupOverlay: {
-    position: "fixed",
-    top: 0,
-    left: 0,
-    width: "100%",
-    height: "100%",
-    backgroundColor: "rgba(0, 0, 0, 0.45)",
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-    zIndex: 1000
-  },
-  popupBox: {
-    backgroundColor: "white",
-    padding: "25px",
-    borderRadius: "14px",
-    width: "360px",
-    boxShadow: "0 10px 24px rgba(0,0,0,0.25)",
-    textAlign: "center"
-  },
-  popupText: {
-    marginBottom: "16px",
-    color: "#111827",
-    fontWeight: "500"
-  },
-  popupActionRow: {
-    display: "flex",
-    justifyContent: "center",
-    gap: "10px"
-  },
-  removeConfirmBtn: {
-    padding: "10px 20px",
-    backgroundColor: "#dc2626",
-    color: "white",
-    border: "none",
-    borderRadius: "10px",
-    cursor: "pointer"
+    cursor: "pointer",
+    fontWeight: "600"
   }
 };
 

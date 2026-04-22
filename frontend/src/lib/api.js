@@ -98,6 +98,14 @@ export async function getAdminDashboard(token) {
   });
 }
 
+export async function getAdminTeams(token) {
+  return request('/admin/teams', {
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+}
+
 export async function downloadAdminReport(token) {
   const response = await fetch(`${API_BASE_URL}/admin/report`, {
     headers: {

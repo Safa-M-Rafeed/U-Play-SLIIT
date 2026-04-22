@@ -90,46 +90,54 @@ export default function MatchManagement() {
   };
 
   const handlePhotoUpload = async (matchId, e) => {
-    const files = Array.from(e.target.files);
-    if (files.length === 0) return;
+  const files = Array.from(e.target.files);
+  if (files.length === 0) return;
 
-    try {
-      const formData = new FormData();
-      files.forEach(file => {
-        formData.append('photos', file);
-      });
+  try {
+    const formData = new FormData();
+    files.forEach(file => {
+      // Ensure 'photos' matches your backend controller's expected field name
+      formData.append('photos', file); 
+    });
 
-      const authDataString = localStorage.getItem('uplay_auth'); 
-      let token = '';
-      
-      if (authDataString) {
+    // Extract token more safely
+    const authDataString = localStorage.getItem('uplay_auth'); 
+    let token = '';
+    
+    if (authDataString) {
+      try {
         const authData = JSON.parse(authDataString);
         token = authData.token;
+      } catch (parseError) {
+        console.error("Auth data corruption:", parseError);
       }
-
-      if (!token) {
-        alert("No authentication token found. Please log in again.");
-        return;
-      }
-
-      await axios.post(
-        `http://localhost:5000/api/matches/${matchId}/photos`,
-        formData,
-        {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-            'Authorization': `Bearer ${token}`
-          }
-        }
-      );
-
-      alert('Photos uploaded successfully!');
-      fetchMatches();
-    } catch (error) {
-      console.error("Upload failed", error);
-      alert('Photo upload failed.');
     }
-  };
+
+    if (!token) {
+      alert("Please log in again to upload photos.");
+      return;
+    }
+
+    // Axios call - removed manual Content-Type
+    await axios.post(
+      `http://localhost:5000/api/matches/${matchId}/photos`,
+      formData,
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`
+          // REMOVED: 'Content-Type': 'multipart/form-data'
+        }
+      }
+    );
+
+    alert('Photos uploaded successfully!');
+    fetchMatches(); // Refresh the list so the student dashboard sees them
+  } catch (error) {
+    // Log the actual server response to see WHY it's 400
+    console.error("Upload Error Details:", error.response?.data || error.message);
+    alert(`Photo upload failed: ${error.response?.data?.message || 'Check console'}`);
+  }
+};
 
   return (
     <DashboardLayout 

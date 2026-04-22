@@ -1,5 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
+  ArrowLeftIcon,
   TrophyIcon,
   UsersIcon,
   SwordsIcon,
@@ -35,6 +37,7 @@ const colorMap = {
 
 export function TournamentsInsights() {
   const { user, token } = useAuth();
+  const navigate = useNavigate();
   const [dashboard, setDashboard] = useState({
     stats: {
       totalUsers: 0,
@@ -49,6 +52,25 @@ export function TournamentsInsights() {
   const [loading, setLoading] = useState(true);
   const [selectedSport, setSelectedSport] = useState(null);
   const [selectedSportFilter, setSelectedSportFilter] = useState('all');
+  const [selectedStatusFilter, setSelectedStatusFilter] = useState('all');
+
+  const getTeamCapacity = (tournament) => {
+    const candidates = [
+      tournament?.totalTeams,
+      tournament?.maxTeams,
+      tournament?.teamSlots,
+      tournament?.slots
+    ];
+
+    for (const candidate of candidates) {
+      const parsed = Number(candidate);
+      if (Number.isFinite(parsed) && parsed > 0) {
+        return parsed;
+      }
+    }
+
+    return 0;
+  };
 
   const sportsCategoryData = useMemo(() => {
     if (!dashboard.tournaments || dashboard.tournaments.length === 0) {
@@ -70,8 +92,35 @@ export function TournamentsInsights() {
 
   const filteredTournaments = useMemo(() => {
     if (!selectedSport) return [];
-    return dashboard.tournaments.filter((tournament) => tournament.sport === selectedSport);
+    const tournamentsBySport = dashboard.tournaments.filter((tournament) => tournament.sport === selectedSport);
+
+    if (selectedStatusFilter === 'all') {
+      return tournamentsBySport;
+    }
+
+    return tournamentsBySport.filter((tournament) => {
+      const status = (tournament.status || 'Unknown').trim() || 'Unknown';
+      return status === selectedStatusFilter;
+    });
+  }, [dashboard.tournaments, selectedSport, selectedStatusFilter]);
+
+  const availableStatuses = useMemo(() => {
+    if (!selectedSport || !dashboard.tournaments) {
+      return [];
+    }
+
+    const statuses = dashboard.tournaments
+      .filter((tournament) => tournament.sport === selectedSport)
+      .map((tournament) => (tournament.status || 'Unknown').trim() || 'Unknown');
+
+    return Array.from(new Set(statuses)).sort((a, b) => a.localeCompare(b));
   }, [dashboard.tournaments, selectedSport]);
+
+  useEffect(() => {
+    if (selectedStatusFilter !== 'all' && !availableStatuses.includes(selectedStatusFilter)) {
+      setSelectedStatusFilter('all');
+    }
+  }, [availableStatuses, selectedStatusFilter]);
 
   const lineChartData = useMemo(() => {
     if (!dashboard.tournaments || dashboard.tournaments.length === 0) return [];
@@ -142,6 +191,60 @@ export function TournamentsInsights() {
     }
   }, [token]);
 
+  const exportFilteredTournaments = () => {
+    if (!filteredTournaments.length) {
+      return;
+    }
+
+    const headers = [
+      'Tournament Name',
+      'Sport',
+      'Status',
+      'Date',
+      'Registered Teams',
+      'Total Slots',
+      'Remaining Slots',
+      'Matches Played'
+    ];
+
+    const rows = filteredTournaments.map((tournament) => {
+      const totalSlots = getTeamCapacity(tournament);
+      const registeredTeams = Number(tournament.registeredTeams) || 0;
+      const remainingSlots = Math.max(0, totalSlots - registeredTeams);
+      const safeName = String(tournament.name || '').replace(/"/g, '""');
+      const safeSport = String(tournament.sport || selectedSport || 'Unknown').replace(/"/g, '""');
+      const safeStatus = String(tournament.status || 'Unknown').replace(/"/g, '""');
+      const safeDate = tournament.date ? new Date(tournament.date).toLocaleDateString() : 'TBD';
+      const safeDateValue = String(safeDate).replace(/"/g, '""');
+
+      return [
+        `"${safeName}"`,
+        `"${safeSport}"`,
+        `"${safeStatus}"`,
+        `"${safeDateValue}"`,
+        registeredTeams,
+        totalSlots,
+        remainingSlots,
+        Number(tournament.matchesPlayed) || 0
+      ].join(',');
+    });
+
+    const csvContent = [headers.join(','), ...rows].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    const sportPart = (selectedSport || 'all-sports').toLowerCase().replace(/\s+/g, '-');
+    const statusPart = (selectedStatusFilter || 'all').toLowerCase().replace(/\s+/g, '-');
+    const datePart = new Date().toISOString().slice(0, 10);
+
+    link.href = url;
+    link.setAttribute('download', `tournaments-${sportPart}-${statusPart}-${datePart}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <DashboardLayout
       sidebarItems={sidebarItems}
@@ -153,11 +256,21 @@ export function TournamentsInsights() {
     >
       <div className="max-w-5xl mx-auto space-y-6">
         <GlassCard className="border-violet-500/20">
-          <div className="text-white">
-            <h1 className="text-2xl font-semibold mb-2">Tournaments Insights</h1>
-            <p className="text-sm text-slate-400">
-              View tournament analytics and reporting here.
-            </p>
+          <div className="flex items-center justify-between gap-4 text-white">
+            <div>
+              <h1 className="text-2xl font-semibold mb-2">Tournaments Insights</h1>
+              <p className="text-sm text-slate-400">
+                View tournament analytics and reporting here.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => navigate('/admin/insights')}
+              className="inline-flex items-center gap-2 rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-slate-200 transition hover:bg-white/10"
+            >
+              <ArrowLeftIcon className="w-4 h-4" />
+              Back to Insights
+            </button>
           </div>
         </GlassCard>
 
@@ -181,7 +294,7 @@ export function TournamentsInsights() {
               </div>
               <div>
                 <p className="text-sm text-slate-400">Registered Teams</p>
-                <p className="text-3xl font-semibold text-white">{dashboard.stats?.totalUsers || 0}</p>
+                <p className="text-3xl font-semibold text-white">{dashboard.tournaments?.reduce((sum, t) => sum + (Number(t.registeredTeams) || 0), 0) || 0}</p>
               </div>
             </div>
           </GlassCard>
@@ -249,7 +362,7 @@ export function TournamentsInsights() {
                     stroke="#9ca3af"
                     fontSize={12}
                   />
-                  <Tooltip
+                  <Tooltip 
                     contentStyle={{ 
                       backgroundColor: 'rgba(15, 23, 42, 0.95)', 
                       border: '1px solid rgba(255, 255, 255, 0.1)',
@@ -346,18 +459,44 @@ export function TournamentsInsights() {
           <div className="grid grid-cols-1 gap-6">
             <div className="flex items-center justify-between mb-2">
               <h2 className="text-xl font-semibold text-white">{selectedSport} Tournaments</h2>
-              <button
-                onClick={() => setSelectedSport(null)}
-                className="text-sm text-blue-400 hover:text-white transition-colors"
-              >
-                Clear Selection
-              </button>
+              <div className="flex items-center gap-3">
+                <label htmlFor="status-filter" className="text-sm text-slate-300">Status</label>
+                <select
+                  id="status-filter"
+                  value={selectedStatusFilter}
+                  onChange={(event) => setSelectedStatusFilter(event.target.value)}
+                  className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white outline-none transition focus:border-sky-500"
+                >
+                  <option value="all">All Statuses</option>
+                  {availableStatuses.map((status) => (
+                    <option key={status} value={status}>
+                      {status}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  onClick={exportFilteredTournaments}
+                  disabled={!filteredTournaments.length}
+                  className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white outline-none transition hover:border-sky-500 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Export CSV
+                </button>
+                <button
+                  onClick={() => {
+                    setSelectedSport(null);
+                    setSelectedStatusFilter('all');
+                  }}
+                  className="text-sm text-blue-400 hover:text-white transition-colors"
+                >
+                  Clear Selection
+                </button>
+              </div>
             </div>
             {filteredTournaments.length > 0 ? (
               <div className="space-y-4">
                 {filteredTournaments.map((tournament) => {
-                  const totalTeams = tournament.totalTeams || 0;
-                  const registeredTeams = tournament.registeredTeams || 0;
+                  const totalTeams = getTeamCapacity(tournament);
+                  const registeredTeams = Number(tournament.registeredTeams) || 0;
                   const registrationPercentage = totalTeams > 0 ? Math.min((registeredTeams / totalTeams) * 100, 100) : 0;
                   const remainingTeams = Math.max(0, totalTeams - registeredTeams);
 
@@ -425,7 +564,10 @@ export function TournamentsInsights() {
             ) : (
               <GlassCard className="border-white/10">
                 <div className="text-center py-8">
-                  <p className="text-slate-400">No tournaments found for {selectedSport}</p>
+                  <p className="text-slate-400">
+                    No tournaments found for {selectedSport}
+                    {selectedStatusFilter !== 'all' ? ` with status ${selectedStatusFilter}` : ''}
+                  </p>
                 </div>
               </GlassCard>
             )}

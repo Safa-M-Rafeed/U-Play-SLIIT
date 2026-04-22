@@ -1,8 +1,9 @@
 import { useState } from "react";
 
-function TeamDashboard({ teams, onSelectTeam, onUpdateTeam, onDeleteTeam }) {
+function TeamDashboard({ teams, onUpdateTeam, onDeleteTeam, onBack }) {
   const [editingTeamId, setEditingTeamId] = useState(null);
   const [editedTeamName, setEditedTeamName] = useState("");
+  const [editedSport, setEditedSport] = useState("Football");
   const [newLogo, setNewLogo] = useState(null);
   const [previewLogo, setPreviewLogo] = useState(null);
 
@@ -10,14 +11,18 @@ function TeamDashboard({ teams, onSelectTeam, onUpdateTeam, onDeleteTeam }) {
   const [teamToDelete, setTeamToDelete] = useState(null);
 
   const handleEditClick = (team) => {
-    setEditingTeamId(team.id);
+    const teamId = team._id || team.id;
+    setEditingTeamId(teamId);
     setEditedTeamName(team.teamName);
+    setEditedSport(team.sport || "Football");
     setPreviewLogo(team.logo);
+    setNewLogo(null);
   };
 
   const handleCancelEdit = () => {
     setEditingTeamId(null);
     setEditedTeamName("");
+    setEditedSport("Football");
     setNewLogo(null);
     setPreviewLogo(null);
   };
@@ -38,6 +43,12 @@ function TeamDashboard({ teams, onSelectTeam, onUpdateTeam, onDeleteTeam }) {
       return;
     }
 
+    const maxSize = 2 * 1024 * 1024;
+    if (file.size > maxSize) {
+      alert("Logo size must be less than 2MB");
+      return;
+    }
+
     const reader = new FileReader();
     reader.onload = () => {
       setPreviewLogo(reader.result);
@@ -48,6 +59,7 @@ function TeamDashboard({ teams, onSelectTeam, onUpdateTeam, onDeleteTeam }) {
 
   const handleSaveEdit = (team) => {
     const trimmedName = editedTeamName.trim();
+    const teamId = team._id || team.id;
 
     if (!trimmedName) {
       alert("Team name required");
@@ -59,11 +71,13 @@ function TeamDashboard({ teams, onSelectTeam, onUpdateTeam, onDeleteTeam }) {
       return;
     }
 
-    const duplicate = teams.some(
-      (t) =>
-        t.id !== team.id &&
+    const duplicate = teams.some((t) => {
+      const currentId = t._id || t.id;
+      return (
+        currentId !== teamId &&
         t.teamName.toLowerCase() === trimmedName.toLowerCase()
-    );
+      );
+    });
 
     if (duplicate) {
       alert("Team name must be unique");
@@ -73,11 +87,11 @@ function TeamDashboard({ teams, onSelectTeam, onUpdateTeam, onDeleteTeam }) {
     const updatedTeam = {
       ...team,
       teamName: trimmedName,
+      sport: editedSport,
       logo: newLogo || team.logo
     };
 
     onUpdateTeam(updatedTeam, true);
-    alert("Team updated successfully ✅");
     handleCancelEdit();
   };
 
@@ -97,10 +111,9 @@ function TeamDashboard({ teams, onSelectTeam, onUpdateTeam, onDeleteTeam }) {
   const handleConfirmDelete = () => {
     if (!teamToDelete) return;
 
-    onDeleteTeam(teamToDelete.id);
+    onDeleteTeam(teamToDelete._id || teamToDelete.id);
     setShowDeletePopup(false);
     setTeamToDelete(null);
-    alert("Team deleted successfully ✅");
   };
 
   const handleCancelDelete = () => {
@@ -110,106 +123,125 @@ function TeamDashboard({ teams, onSelectTeam, onUpdateTeam, onDeleteTeam }) {
 
   return (
     <div style={styles.wrapper}>
-      <h2 style={styles.heading}>My Team</h2>
+      <div style={styles.headerRow}>
+        <h2 style={styles.heading}>Edit Team</h2>
+        <button style={styles.backBtn} onClick={onBack}>
+          ← Back
+        </button>
+      </div>
 
       {teams.length === 0 ? (
         <div style={styles.emptyBox}>
           <p style={styles.emptyTitle}>No team created yet.</p>
           <p style={styles.emptyText}>
-            Create your team to manage logo, player roster, and team details.
+            Create your team to manage logo, sport, and team details.
           </p>
         </div>
       ) : (
         <div style={styles.grid}>
-          {teams.map((team) => (
-            <div key={team.id} style={styles.card}>
-              <div
-                style={styles.cardTop}
-                onClick={() => editingTeamId !== team.id && onSelectTeam(team)}
-              >
-                <div style={styles.logoWrapper}>
-                  <img
-                    src={
-                      editingTeamId === team.id
-                        ? previewLogo || team.logo
-                        : team.logo
-                    }
-                    alt=""
-                    style={styles.logo}
-                    onError={(e) => {
-                      e.target.style.display = "none";
-                      e.target.nextSibling.style.display = "flex";
-                    }}
-                  />
-                  <div style={styles.logoFallback}>No Logo</div>
+          {teams.map((team) => {
+            const teamId = team._id || team.id;
+            const isEditing = editingTeamId === teamId;
+
+            return (
+              <div key={teamId} style={styles.card}>
+                <div style={styles.cardTop}>
+                  <div style={styles.logoWrapper}>
+                    <img
+                      src={isEditing ? previewLogo || team.logo : team.logo}
+                      alt=""
+                      style={styles.logo}
+                      onError={(e) => {
+                        e.target.style.display = "none";
+                        e.target.nextSibling.style.display = "flex";
+                      }}
+                    />
+                    <div style={styles.logoFallback}>No Logo</div>
+                  </div>
+
+                  {isEditing ? (
+                    <>
+                      <input
+                        type="text"
+                        value={editedTeamName}
+                        onChange={(e) => setEditedTeamName(e.target.value)}
+                        style={styles.input}
+                        placeholder="Team Name"
+                      />
+
+                      <select
+                        value={editedSport}
+                        onChange={(e) => setEditedSport(e.target.value)}
+                        style={styles.input}
+                      >
+                        <option value="Football">Football</option>
+                        <option value="Cricket">Cricket</option>
+                        <option value="Basketball">Basketball</option>
+                        <option value="Esports">Esports</option>
+                      </select>
+                    </>
+                  ) : (
+                    <>
+                      <h3 style={styles.teamName}>{team.teamName}</h3>
+                      <p style={styles.metaText}>Sport: {team.sport || "Football"}</p>
+                    </>
+                  )}
+
+                  <p style={styles.metaText}>
+                    Captain: {team.captain || "Captain"}
+                  </p>
+
+                  <p style={styles.metaText}>
+                    Players: {team.players?.length || 0}
+                  </p>
+
+                  <p style={styles.metaText}>
+                    Registrations: {team.registrations?.length || 0}
+                  </p>
                 </div>
 
-                {editingTeamId === team.id ? (
-                  <input
-                    type="text"
-                    value={editedTeamName}
-                    onChange={(e) => setEditedTeamName(e.target.value)}
-                    style={styles.input}
-                  />
-                ) : (
-                  <h3 style={styles.teamName}>{team.teamName}</h3>
-                )}
-
-                <p style={styles.metaText}>
-                  Captain: {team.captain || "Captain"}
-                </p>
-
-                <p style={styles.metaText}>
-                  Players: {team.players?.length || 0}
-                </p>
+                <div style={styles.actionRow}>
+                  {isEditing ? (
+                    <>
+                      <input
+                        type="file"
+                        accept=".png,.jpg,.jpeg,.webp"
+                        onChange={handleLogoChange}
+                        style={styles.fileInput}
+                      />
+                      <button
+                        style={styles.saveBtn}
+                        onClick={() => handleSaveEdit(team)}
+                      >
+                        Save
+                      </button>
+                      <button
+                        style={styles.cancelBtn}
+                        onClick={handleCancelEdit}
+                      >
+                        Cancel
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        style={styles.editBtn}
+                        onClick={() => handleEditClick(team)}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        style={styles.deleteBtn}
+                        onClick={() => handleDeleteClick(team)}
+                      >
+                        Delete
+                      </button>
+                    </>
+                  )}
+                </div>
               </div>
-
-              <div style={styles.actionRow}>
-                {editingTeamId === team.id ? (
-                  <>
-                    <input
-                      type="file"
-                      onChange={handleLogoChange}
-                      style={styles.fileInput}
-                    />
-                    <button
-                      style={styles.saveBtn}
-                      onClick={() => handleSaveEdit(team)}
-                    >
-                      Save
-                    </button>
-                    <button
-                      style={styles.cancelBtn}
-                      onClick={handleCancelEdit}
-                    >
-                      Cancel
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <button
-                      style={styles.editBtn}
-                      onClick={() => handleEditClick(team)}
-                    >
-                      Edit
-                    </button>
-                    <button
-                      style={styles.viewBtn}
-                      onClick={() => onSelectTeam(team)}
-                    >
-                      View
-                    </button>
-                    <button
-                      style={styles.deleteBtn}
-                      onClick={() => handleDeleteClick(team)}
-                    >
-                      Delete
-                    </button>
-                  </>
-                )}
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
@@ -242,11 +274,26 @@ const styles = {
     width: "100%",
     marginTop: "10px"
   },
+  headerRow: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: "20px",
+    gap: "12px"
+  },
   heading: {
     color: "white",
     fontSize: "28px",
     fontWeight: "700",
-    marginBottom: "20px"
+    margin: 0
+  },
+  backBtn: {
+    padding: "10px 18px",
+    backgroundColor: "rgba(255,255,255,0.08)",
+    color: "white",
+    border: "1px solid rgba(255,255,255,0.1)",
+    borderRadius: "10px",
+    cursor: "pointer"
   },
   emptyBox: {
     background: "rgba(15,23,42,0.7)",
@@ -269,7 +316,7 @@ const styles = {
   },
   grid: {
     display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+    gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
     gap: "20px"
   },
   card: {
@@ -280,7 +327,6 @@ const styles = {
     boxShadow: "0 10px 28px rgba(0,0,0,0.18)"
   },
   cardTop: {
-    cursor: "pointer",
     textAlign: "center"
   },
   logoWrapper: {
@@ -321,14 +367,14 @@ const styles = {
   },
   input: {
     width: "100%",
-    padding: "10px 12px",
+    padding: "12px 14px",
     marginBottom: "10px",
     boxSizing: "border-box",
-    borderRadius: "10px",
+    borderRadius: "12px",
     border: "1px solid rgba(255,255,255,0.1)",
     background: "rgba(255,255,255,0.06)",
     color: "white",
-    textAlign: "center"
+    textAlign: "left"
   },
   fileInput: {
     color: "#cbd5e1",
@@ -344,14 +390,6 @@ const styles = {
   editBtn: {
     padding: "8px 16px",
     backgroundColor: "#f39c12",
-    color: "white",
-    border: "none",
-    borderRadius: "10px",
-    cursor: "pointer"
-  },
-  viewBtn: {
-    padding: "8px 16px",
-    backgroundColor: "#2563eb",
     color: "white",
     border: "none",
     borderRadius: "10px",

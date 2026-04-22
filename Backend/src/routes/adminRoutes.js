@@ -5,6 +5,7 @@ import {
   deleteUser,
   downloadAdminReport,
   getAdminDashboard,
+  getAdminTeams,
   updateApprovalStatus,
   updateTournament,
   updateUserStatus
@@ -16,6 +17,7 @@ const router = express.Router();
 router.use(protect, authorizeRoles('admin'));
 
 router.get('/dashboard', getAdminDashboard);
+router.get('/teams', getAdminTeams);
 router.get('/report', downloadAdminReport);
 router.patch('/users/:userId/status', updateUserStatus);
 router.delete('/users/:userId', deleteUser);

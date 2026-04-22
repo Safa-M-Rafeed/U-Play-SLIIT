@@ -1,5 +1,6 @@
 import PDFDocument from 'pdfkit';
 import User from '../models/User.js';
+import Team from '../models/Team.js';
 import Tournament from '../models/Tournament.js';
 import Approval from '../models/Approval.js';
 import Activity from '../models/Activity.js';
@@ -140,18 +141,68 @@ const formatUser = (user) => ({
     year: 'numeric'
   }),
   avatarUrl: user.avatarUrl || '',
+  teamName: user.teamName || '',
+  sport: user.sport || '',
+  organization: user.organization || '',
   profileProgress: getProfileProgress(user)
 });
+
+const formatCaptainTeam = (user) => ({
+  id: user._id,
+  captainName: user.fullName,
+  teamName: user.teamName || user.fullName,
+  sport: user.sport || 'Unknown',
+  organization: user.organization || '',
+  status: user.status || 'Active',
+  joined: new Date(user.createdAt).toLocaleDateString('en-US', {
+    month: 'short',
+    year: 'numeric'
+  }),
+  profileProgress: getProfileProgress(user)
+});
+
+const formatTeam = (team) => ({
+  id: team._id,
+  teamName: team.teamName,
+  captainName: team.captain,
+  sport: team.sport || 'Unknown',
+  playerCount: Array.isArray(team.players) ? team.players.length : 0,
+  chemistryScore: team.chemistryScore || 0,
+  logo: team.logo || '',
+  joined: new Date(team.createdAt).toLocaleDateString('en-US', {
+    month: 'short',
+    year: 'numeric'
+  })
+});
+
+const getTournamentCapacity = (tournament) => {
+  const candidates = [
+    tournament.maxTeams,
+    tournament.totalTeams,
+    tournament.teamSlots,
+    tournament.slots
+  ];
+
+  for (const candidate of candidates) {
+    const parsed = Number(candidate);
+    if (Number.isFinite(parsed) && parsed > 0) {
+      return parsed;
+    }
+  }
+
+  return 0;
+};
 
 const formatTournament = (tournament) => ({
   _id: tournament._id,
   name: tournament.name,
   sport: tournament.sport,
-  date: tournament.date,
-  registeredTeams: tournament.registeredTeams,
-  totalTeams: tournament.maxTeams,
+  date: tournament.date || tournament.startDate || null,
+  registeredTeams: Number(tournament.registeredTeams) || 0,
+  totalTeams: getTournamentCapacity(tournament),
+  maxTeams: getTournamentCapacity(tournament),
   matchesPlayed: tournament.matchesPlayed || 0,
-  status: tournament.status
+  status: tournament.status || 'Upcoming'
 });
 
 const formatApproval = (approval) => ({
@@ -238,16 +289,20 @@ export const getAdminDashboard = async (req, res) => {
   try {
     await ensureSeedData();
 
-    const [users, tournaments, approvals, activity] = await Promise.all([
+    const [users, teams, tournaments, approvals, activity] = await Promise.all([
       User.find().sort({ createdAt: -1 }),
-      Tournament.find().sort({ date: 1 }),
+      Team.find().sort({ createdAt: -1 }),
+      Tournament.find().sort({ createdAt: -1 }),
       Approval.find({ status: 'Pending' }).sort({ createdAt: -1 }),
       Activity.find().sort({ createdAt: -1 }).limit(8)
     ]);
 
+    const activeStatuses = new Set(['Active', 'Ongoing', 'Registration Open']);
+
     const stats = {
       totalUsers: users.length,
-      activeTournaments: tournaments.filter((item) => item.status === 'Active').length,
+      totalTeams: teams.length,
+      activeTournaments: tournaments.filter((item) => activeStatuses.has(item.status)).length,
       matchesPlayed: tournaments.reduce((sum, item) => sum + (item.matchesPlayed || 0), 0),
       pendingApprovals: approvals.length
     };
@@ -255,6 +310,8 @@ export const getAdminDashboard = async (req, res) => {
     res.json({
       stats,
       users: users.map(formatUser),
+      captainTeams: users.filter((user) => user.role === 'captain').map(formatCaptainTeam),
+      teams: teams.map(formatTeam),
       tournaments: tournaments.map(formatTournament),
       approvals: approvals.map(formatApproval),
       activity: activity.map(formatActivity)
@@ -265,18 +322,35 @@ export const getAdminDashboard = async (req, res) => {
   }
 };
 
+export const getAdminTeams = async (req, res) => {
+  try {
+    await ensureSeedData();
+
+    const teams = await Team.find().sort({ createdAt: -1 });
+
+    res.json({
+      teams: teams.map(formatTeam)
+    });
+  } catch (error) {
+    console.error('getAdminTeams error:', error);
+    res.status(500).json({ message: 'Unable to load teams' });
+  }
+};
+
 export const downloadAdminReport = async (req, res) => {
   try {
     await ensureSeedData();
 
     const [users, tournaments] = await Promise.all([
       User.find().sort({ createdAt: -1 }),
-      Tournament.find().sort({ date: 1 })
+      Tournament.find().sort({ createdAt: -1 })
     ]);
+
+    const activeStatuses = new Set(['Active', 'Ongoing', 'Registration Open']);
 
     const stats = {
       totalUsers: users.length,
-      activeTournaments: tournaments.filter((item) => item.status === 'Active').length,
+      activeTournaments: tournaments.filter((item) => activeStatuses.has(item.status)).length,
       matchesPlayed: tournaments.reduce((sum, item) => sum + (item.matchesPlayed || 0), 0)
     };
 

@@ -12,6 +12,7 @@ import RegisterPage from './pages/RegisterPage';
 import ProfilePage from './pages/ProfilePage';
 
 import { StudentDashboard } from './pages/StudentDashboard';
+import { StatsStudent } from './pages/StatsStudent';
 import { CaptainDashboard } from './pages/CaptainDashboard';
 import AdminDashboard from './pages/AdminDashboard';
 
@@ -31,6 +32,9 @@ import TournamentDetail from './pages/tournament/TournamentDetail';
 import { Insights } from './pages/Insights';
 import { TournamentsInsights } from './pages/TournamentsInsights';
 import { InsightsUser } from './pages/InsightsUser';
+import { InsightUser2 } from './pages/InsightUser2';
+import { InsightsTeams } from './pages/InsightsTeams';
+import { InsightsMatches } from './pages/InsightsMatches';
 
 export function App() {
   return (
@@ -53,40 +57,59 @@ export function App() {
             <Route path='/profile' element={<ProfilePage />} />
           </Route>
 
-          {/* ── Student ── */}
-          <Route element={<ProtectedRoute allowedRoles={['student']} />}>
-            <Route path='/student' element={<StudentDashboard />} />
-            <Route path='/student/fixtures' element={<MatchSchedule />} />
-            <Route path='/student/leaderboard' element={<Leaderboard />} />
-            <Route path='/student/tournaments' element={<TournamentList />} />
-            <Route path='/student/tournaments/:id' element={<TournamentDetail />} />
-          </Route>
+        {/* ── Student ── */}
+        <Route element={<ProtectedRoute allowedRoles={['student']} />}>
+          <Route path='/student' element={<StudentDashboard />} />
 
-          {/* ── Captain ── */}
-          <Route element={<ProtectedRoute allowedRoles={['captain']} />}>
-            <Route path='/captain' element={<CaptainDashboard />} />
-            <Route path='/captain/team' element={<CaptainDashboard />} />
-            <Route path='/captain/players' element={<CaptainDashboard />} />
-            <Route path='/captain/status' element={<CaptainDashboard />} />
-            <Route path='/captain/tournaments' element={<TournamentList />} />
-            <Route path='/captain/tournaments/:id' element={<TournamentDetail />} />
-          </Route>
+          {/* ✅ KEEP BOTH */}
+          <Route path='/student/fixtures' element={<MatchSchedule />} />
+          <Route path='/student/leaderboard' element={<Leaderboard />} />
+          <Route path='/student/stats' element={<StatsStudent />} />
 
-          {/* ── Admin ── */}
-          <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
-            <Route path='/admin' element={<AdminDashboard />} />
-            <Route path='/admin/matches' element={<MatchManagement />} />
-            <Route path='/admin/create-match' element={<CreateMatch />} />
-            <Route path='/admin/leaderboard' element={<Leaderboard />} />
-            <Route path='/admin/insights' element={<Insights />} />
-            <Route path='/admin/tournaments-insights' element={<TournamentsInsights />} />
-            <Route path='/admin/insights-users' element={<InsightsUser />} />
-            <Route path='/admin/approvals' element={<AdminDashboard />} />
-            <Route path='/admin/tournaments' element={<TournamentList />} />
-            <Route path='/admin/tournaments/create' element={<CreateTournament />} />
-            <Route path='/admin/tournaments/:id' element={<TournamentDetail />} />
-            <Route path='/admin/tournaments/:id/edit' element={<EditTournament />} />
-          </Route>
+          <Route path='/student/tournaments' element={<TournamentList />} />
+          <Route path='/student/tournaments/:id' element={<TournamentDetail />} />
+        </Route>
+
+        {/* ── Captain ── */}
+        <Route element={<ProtectedRoute allowedRoles={['captain']} />}>
+          <Route path='/captain' element={<CaptainDashboard />} />
+
+          {/* Team Management */}
+          <Route path='/captain/team' element={<CaptainDashboard />} />
+          <Route path='/captain/players' element={<CaptainDashboard />} />
+          <Route path='/captain/status' element={<CaptainDashboard />} />
+
+          {/* Tournament features */}
+          <Route path='/captain/tournaments' element={<TournamentList />} />
+          <Route path='/captain/tournaments/:id' element={<TournamentDetail />} />
+        </Route>
+
+        {/* ── Admin ── */}
+        <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
+          <Route path='/admin' element={<AdminDashboard />} />
+
+          {/* ✅ Match Management */}
+          <Route path='/admin/matches' element={<MatchManagement />} />
+          <Route path='/admin/create-match' element={<CreateMatch />} />
+          <Route path='/admin/leaderboard' element={<Leaderboard />} />
+
+          {/* ✅ Insights */}
+          <Route path='/admin/insights' element={<Insights />} />
+          <Route path='/admin/tournaments-insights' element={<TournamentsInsights />} />
+          <Route path='/admin/insights-users' element={<InsightsUser />} />
+          <Route path='/admin/insights-users/:id' element={<InsightUser2 />} />
+          <Route path='/admin/insights-teams' element={<InsightsTeams />} />
+          <Route path='/admin/insights-matches' element={<InsightsMatches />} />
+
+          {/* ✅ Approvals */}
+          <Route path='/admin/approvals' element={<AdminDashboard />} />
+
+          {/* ✅ Tournament CRUD */}
+          <Route path='/admin/tournaments' element={<TournamentList />} />
+          <Route path='/admin/tournaments/create' element={<CreateTournament />} />
+          <Route path='/admin/tournaments/:id' element={<TournamentDetail />} />
+          <Route path='/admin/tournaments/:id/edit' element={<EditTournament />} />
+        </Route>
 
           {/* Catch all */}
           <Route path='*' element={<Navigate to='/' />} />
